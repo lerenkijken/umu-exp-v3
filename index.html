@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Zebra in de zandstorm</title>
+
+  <script src="https://unpkg.com/jspsych@8.2.2"></script>
+  <script src="https://unpkg.com/fabric@7.1.0/dist/index.min.js"></script>
+
+  <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-call-function@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-canvas-button-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
+
+  <link href="https://unpkg.com/jspsych@8.2.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+  <link href="umu_exp_style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body></body>
+
+<script>
+// instellingen
+  const subject_id = Math.random().toString(36).substring(2, 12);
+  const filename = `${subject_id}.csv`;
+
+  const jsPsych = initJsPsych({
+    on_finish: () => {
+      jsPsych.data.get().localSave('csv', filename);
+    }
+  });
+
+  function getContinueButton() {
+    return document.querySelector(
+      'button.jspsych-btn:not([disabled]), input.jspsych-btn[type="button"]:not([disabled]), input.jspsych-btn[type="submit"]:not([disabled]), input[type="submit"]:not([disabled])'
+    );
+  }
+
+  document.addEventListener('keydown', function(event) {
+    const active_element = document.activeElement;
+    const active_tag = active_element ? active_element.tagName : '';
+    const input_type = active_element && active_element.type ? active_element.type.toLowerCase() : '';
+    const blocks_space_continue =
+      active_tag === 'TEXTAREA' ||
+      active_tag === 'SELECT' ||
+      active_tag === 'BUTTON' ||
+      (active_tag === 'INPUT' && !['radio', 'checkbox'].includes(input_type));
+    const continue_button = getContinueButton();
+
+    if (event.code === 'Space' && continue_button && !blocks_space_continue) {
+      event.preventDefault();
+      continue_button.click();
+    }
+  });
+
+  function isSpaceHintTarget(element) {
+    return element.matches(
+      'button.jspsych-btn, input.jspsych-btn[type="button"], input.jspsych-btn[type="submit"], input[type="submit"]'
+    );
+  }
+
+  function ensureSpaceHints() {
+    const buttons = document.querySelectorAll(
+      'button.jspsych-btn, input.jspsych-btn[type="button"], input.jspsych-btn[type="submit"], input[type="submit"]'
+    );
+
+    buttons.forEach((button) => {
+      if (
+        button.parentElement &&
+        button.parentElement.classList.contains('jspsych-space-wrapper')
+      ) {
+        const existing_hint = button.parentElement.querySelector('.jspsych-space-hint');
+        if (!existing_hint) {
+          const hint = document.createElement('div');
+          hint.className = 'jspsych-space-hint';
+          hint.textContent = '<spatie>';
+          button.parentElement.appendChild(hint);
+        }
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'jspsych-space-wrapper';
+      button.insertAdjacentElement('beforebegin', wrapper);
+      wrapper.appendChild(button);
+
+      const hint = document.createElement('div');
+      hint.className = 'jspsych-space-hint';
+      hint.textContent = '<spatie>';
+      wrapper.appendChild(hint);
+    });
+  }
+
+  function setupSpaceHintObserver() {
+    let update_scheduled = false;
+
+    const scheduleHintUpdate = () => {
+      if (update_scheduled) return;
+      update_scheduled = true;
+      window.requestAnimationFrame(() => {
+        update_scheduled = false;
+        ensureSpaceHints();
+      });
+    };
+
+    const observer = new MutationObserver((mutation_list) => {
+      const should_update = mutation_list.some((mutation) => {
+        return [...mutation.addedNodes].some((node) => {
+          if (!(node instanceof HTMLElement)) return false;
+          if (node.classList.contains('jspsych-space-hint')) return false;
+          if (node.classList.contains('jspsych-space-wrapper')) return false;
+          return isSpaceHintTarget(node) || !!node.querySelector?.(
+            'button.jspsych-btn, input.jspsych-btn[type="button"], input.jspsych-btn[type="submit"], input[type="submit"]'
+          );
+        });
+      });
+
+      if (should_update) {
+        scheduleHintUpdate();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    scheduleHintUpdate();
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', setupSpaceHintObserver);
+  } else {
+    setupSpaceHintObserver();
+  }
+
+  const vividness_imagery_condition = jsPsych.randomization.sampleWithoutReplacement(['right', 'left'], 1)[0];
+  const hidden_stimulus_congruency = jsPsych.randomization.sampleWithoutReplacement(['congruent', 'congruent', 'absent'], 1)[0];
+
+  jsPsych.data.addProperties({
+    participantID: subject_id,
+    filename: filename,
+    experiment: "zebra_in_zandstorm_gecombineerd",
+    vividness_hidden_stimulus_opacity: 0.11,
+    main_task_duration_ms: 180000,
+    main_task_stimulus_opacity: 0.11,
+    vividness_imagery_condition: vividness_imagery_condition,
+    hidden_stimulus_congruency: hidden_stimulus_congruency,
+
+  });
+
+
+  const canvas_size = [400, 400];
+  const noise_imgs_dim = [250, 250];
+  const gabor_img_dim = [250, 250];
+
+  const noise_files = [];
+  const fabric_noise_imgs = [];
+
+  for (let i = 0; i < 50; i++) {
+    const img_src = `imgs/rand_noise_${i}.png`;
+    noise_files.push(img_src);
+
+    const img = new Image();
+    img.src = img_src;
+
+    const fabric_img = new fabric.Image(img, {
+      left: 0,
+      top: 0,
+      width: noise_imgs_dim[0],
+      height: noise_imgs_dim[1],
+      originX: 'left',
+      originY: 'top'
+    });
+
+    fabric_img.scaleToWidth(canvas_size[0]);
+    fabric_noise_imgs.push(fabric_img);
+  }
+
+  const gabor_left_img = new Image();
+  gabor_left_img.src = 'imgs/gabor_left.png';
+
+  const gabor_right_img = new Image();
+  gabor_right_img.src = 'imgs/gabor_right.png';
+
+  function getGaborFile(orientation) {
+    return orientation === 'left' ? 'imgs/gabor_left.png' : 'imgs/gabor_right.png';
+  }
+
+  function getGaborImageObject(orientation) {
+    return orientation === 'left' ? gabor_left_img : gabor_right_img;
+  }
+
+  function makeFabricGabor(imageObj, opacity) {
+    const gabor = new fabric.Image(imageObj, {
+      left: canvas_size[0] / 2,
+      top: canvas_size[1] / 2,
+      width: gabor_img_dim[0],
+      height: gabor_img_dim[1],
+      opacity: opacity,
+      originX: 'center',
+      originY: 'center'
+    });
+    gabor.scaleToWidth(canvas_size[0]);
+    return gabor;
+  }
+
+  const preload = {
+    type: jsPsychPreload,
+    images: [...noise_files, 'imgs/gabor_left.png', 'imgs/gabor_right.png', 'imgs/Lieke.png','imgs/gabor_left_sand.png', 'imgs/gabor_right_sand.png' , 'imgs/Rick.png'],
+    save_trial_parameters: {
+      images: false
+    }
+  };
+
+  // =====================================================
+  // HULPFUNCTIES VOOR UITLEG
+  // =====================================================
+  function zebraLabel(orientation) {
+    return orientation === 'left' ? 'LINKS' : 'RECHTS';
+  }
+
+  function zebraName(orientation) {
+    return orientation === 'left' ? 'Lieke' : 'Rick';
+  }
+
+  function oppositeOrientation(orientation) {
+    return orientation === 'left' ? 'right' : 'left';
+  }
+
+  function arrowLabel(orientation) {
+    return orientation === 'left' ? 'linkerpijl' : 'rechterpijl';
+  }
+
+  function zebraImageHTML(orientation, width = 220) {
+    const transform = orientation === 'right' ? 'scaleX(-1)' : 'scaleX(1)';
+    const alt = zebraName(orientation);
+    const height = Math.round(width * 0.85);
+    return `
+      <img 
+        src="imgs/Lieke.png"
+        style="height:${height}px; width:auto; max-width:90vw; transform:${transform}; margin:10px 0;"
+        alt="${alt}"
+      >
+    `;
+  }
+
+  function sandstormImageHTML(width = 260) {
+    return `
+      <img 
+        src="imgs/noise_sandstorm.png"
+        style="width:${width}px; height:${width}px; margin:10px 0; border-radius:12px;"
+        alt="zandstorm"
+      >
+    `;
+  }
+
+  // =====================================================
+  // DEMOGRAFIE
+  // =====================================================
+  const demographics = {
+    type: jsPsychSurveyHtmlForm,
+    preamble: '<h2>Eerst twee korte vragen</h2>',
+    html: `
+      <div style="max-width:500px; margin:20px auto; text-align:left;">
+        <p>
+          Hoe oud ben je?<br>
+          <input type="number" name="age" min="4" max="130" required style="padding:6px; width:120px;">
+        </p>
+
+        <p>
+          Wat is je geslacht?<br>
+          <label><input type="radio" name="gender" value="male" required> Jongen / man</label><br>
+          <label><input type="radio" name="gender" value="female" required> Meisje / vrouw</label><br>
+          <label><input type="radio" name="gender" value="other" required> Anders</label>
+        </p>
+      </div>
+    `,
+    button_label: "Verder",
+    save_trial_parameters: {
+      preamble: false,
+      html: false,
+      button_label: false
+    },
+    data: {
+      phase: "demographics"
+    },
+    on_finish: function(data) {
+      const response = data.response;
+      data.age = Number(response.age);
+      data.gender = response.gender;
+    }
+  };
+
+//zebraverhaal
+  const zebra_intro = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <h2>Welkom bij het zebra-spel</h2>
+        ${zebraImageHTML(vividness_imagery_condition, 280)}
+        <p>
+          Dit is zebra <strong>${zebraName(vividness_imagery_condition)}</strong>.
+        </p>
+        <p>
+          De strepen van ${zebraName(vividness_imagery_condition)} lopen naar <strong>${zebraLabel(vividness_imagery_condition)}</strong>.
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: {
+      phase: 'zebra_intro'
+    }
+  };
+
+  const sandstorm_intro_old = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:26px;"><strong>Straks zie je steeds een zandstorm</strong></p>
+        ${sandstormImageHTML(260)}
+        <p>
+          In die zandstorm is het vaak moeilijk om iets goed te zien.
+        </p>
+        <p>
+          Daarom is het jouw taak om straks steeds de <strong>strepen</strong> van ${zebraName(vividness_imagery_condition)} in te beelden.
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: {
+      phase: 'sandstorm_intro'
+    }
+  };
+
+
+const sandstorm_intro_old2 = {
+    type: jsPsychCanvasButtonResponse,
+    canvas_size: [260, 260],
+    stimulus: function() {
+        preamble = `
+            <h2><strong>Straks zie je steeds een zandstorm</strong></h2>
+            <p>In die zandstorm is het vaak moeilijk om iets goed te zien.<p>
+            <p>
+            Daarom is het jouw taak om straks steeds de <strong>strepen</strong> van ${zebraName(vividness_imagery_condition)} in te beelden.
+            </p>
+        `
+        // // add preamble 
+        document.getElementById("jspsych-content").innerHTML = preamble + document.getElementById("jspsych-content").innerHTML
+        document.getElementById("jspsych-canvas-stimulus").style.margin = 'auto';
+
+
+        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+        
+
+
+        const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus");
+        
+
+        let img_sand_filter = new fabric.Circle({
+            fill:'#A66B25',
+            opacity:0.7,
+        })
+
+        let nth_frame = 0;
+        interval_ID = setInterval(() => {
+          canvas.remove(...canvas.getObjects());
+          canvas.add(shuffled_noise_imgs[nth_frame]);
+          
+          img_sand_filter.set({
+            width:  260,
+            height: 260,
+            left: 130,
+            top: 130,
+            // scaleX: shuffled_noise_imgs[nth_frame].scaleX,
+            // scaleY: shuffled_noise_imgs[nth_frame].scaleY,
+            originX: 'center', originY: 'center',
+          })
+          img_sand_filter.setCoords()
+          
+          canvas.add(img_sand_filter);
+          canvas.renderAll();
+          nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
+
+        }, 100)
+      },
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: {
+      phase: 'sandstorm_intro'
+    }
+  };
+
+  let intro_canvas_size = [260,260]
+  const sandstorm_intro = {
+      type: jsPsychCanvasButtonResponse,
+      canvas_size: intro_canvas_size,
+      choices: ['Verder'],
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false,
+        canvas_size: false
+      },
+      stimulus: function() {
+        let preamble = `
+            <h2><strong>Straks zit je een zandstorm zoals hieronder.</strong></h2>
+            <p>In een zandstorm is het moeilijk om iets goed te zien.<p>
+            <p>
+            Daarom is het jouw taak om straks steeds de <strong>strepen van ${zebraName(vividness_imagery_condition)} in te beelden</strong>.
+            </p>
+        `
+
+
+        document.getElementById("jspsych-canvas-stimulus").style.margin = 'auto';
+
+        const sp1 = document.createElement("div")
+        sp1.innerHTML = preamble;
+        const sp2 = document.getElementById("jspsych-canvas-stimulus");
+        const parentDiv = sp2.parentNode;
+        parentDiv.insertBefore(sp1, sp2);
+
+
+        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+        const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
+          backgroundColor: 'white'
+        });
+
+        // const gabor_image_obj = getGaborImageObject(orientation);
+        // const hidden_gabor = makeFabricGabor(gabor_image_obj, hidden_stimulus_opacity);
+        
+        let img_sand_filter = new fabric.Rect({
+            fill:'#A66B25',
+            opacity:0.7,
+        })
+
+
+        let nth_frame = 0;
+
+        interval_ID = setInterval(() => {
+          canvas.remove(...canvas.getObjects());
+          canvas.add(shuffled_noise_imgs[nth_frame]);
+
+        //   if (show_hidden_stimulus) {
+        //     canvas.add(hidden_gabor);
+        //   }
+
+         img_sand_filter.set({
+            width:  shuffled_noise_imgs[nth_frame].width,
+            height: shuffled_noise_imgs[nth_frame].height,
+            left: intro_canvas_size[0] / 2,
+            top: intro_canvas_size[1] / 2,
+            scaleX: shuffled_noise_imgs[nth_frame].scaleX,
+            scaleY: shuffled_noise_imgs[nth_frame].scaleY,
+            originX: 'center', originY: 'center',
+          })
+          img_sand_filter.setCoords()
+          canvas.add(img_sand_filter);
+
+          canvas.renderAll();
+          nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
+        }, 100);
+      },
+      on_finish: function() {
+        clearInterval(interval_ID);
+      }
+    };
+
+
+  const stripes_intro = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:26px;"><strong>Dit zijn de strepen die je moet inbeelden</strong></p>
+        <img src="${getGaborFile(vividness_imagery_condition)}" style="width:240px; height:240px; margin:12px 0;">
+        <p>
+          Dit plaatje laat een klein stukje van de strepen van ${zebraName(vividness_imagery_condition)} zien.
+        <br>
+          Als je straks in de zandstorm zit,<br>probeer dan de strepen van ${zebraName(vividness_imagery_condition)} zo goed als je kan voor je te zien in de storm.
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: {
+      phase: 'stripes_intro'
+    }
+  };
+
+//deel 1
+  const vividness_single_frame_duration = 100;
+  const vividness_noise_duration = 2000;
+  const hidden_stimulus_trial_index = 6;
+  const total_vividness_trials = 6;
+  const hidden_stimulus_opacity = 0.11;
+  const vividness_opacities = [0, 0.28, 0.44, 0.60, 0.78];
+  function make_vividness_instruction_trial(trial_index, orientation) {
+    const title_text = trial_index === 1
+      ? 'Zometeen komt de eerste zandstorm.'
+      : 'Er komt weer een zandstorm.';
+    const prompt_text = trial_index === 1
+      ? `Probeer dan zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in te beelden.`
+      : `Beeld opnieuw zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in.`;
+
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <div style="max-width:850px; margin:0 auto; text-align:center;">
+          <h2>${title_text}</h2>
+          <p>
+            ${prompt_text}
+          </p>
+          <p>
+            Hier zie je de strepen nog een keer:
+          </p>
+          <div style="margin:16px 0;">
+            <img src="${getGaborFile(orientation)}" style="width:220px; height:220px;">
+      `,
+      choices: ['Start'],
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false
+      },
+      data: {
+        phase: "vividness_instruction",
+        vividness_trial_index: trial_index,
+        imagined_tilt: orientation
+      }
+    };
+  }
+
+  function make_vividness_noise_trial(trial_index, orientation, show_hidden_stimulus = false) {
+    let interval_ID;
+
+    return {
+      type: jsPsychCanvasKeyboardResponse,
+      canvas_size: canvas_size,
+      trial_duration: vividness_noise_duration,
+      choices: "NO_KEYS",
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false,
+        canvas_size: false
+      },
+      stimulus: function() {
+        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+        const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
+          backgroundColor: 'white'
+        });
+
+        const gabor_image_obj = getGaborImageObject(orientation);
+        const hidden_gabor = makeFabricGabor(gabor_image_obj, hidden_stimulus_opacity);
+        
+        let img_sand_filter = new fabric.Rect({
+            fill:'#A66B25',
+            opacity:0.7,
+        })
+
+
+        let nth_frame = 0;
+
+        interval_ID = setInterval(() => {
+          canvas.remove(...canvas.getObjects());
+          canvas.add(shuffled_noise_imgs[nth_frame]);
+
+          if (show_hidden_stimulus) {
+            canvas.add(hidden_gabor);
+          }
+
+         img_sand_filter.set({
+            width:  shuffled_noise_imgs[nth_frame].width,
+            height: shuffled_noise_imgs[nth_frame].height,
+            left: canvas_size[0] / 2,
+            top: canvas_size[1] / 2,
+            scaleX: shuffled_noise_imgs[nth_frame].scaleX,
+            scaleY: shuffled_noise_imgs[nth_frame].scaleY,
+            originX: 'center', originY: 'center',
+          })
+          img_sand_filter.setCoords()
+          canvas.add(img_sand_filter);
+
+          canvas.renderAll();
+          nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
+        }, vividness_single_frame_duration);
+      },
+      data: {
+        phase: "vividness_noise",
+        vividness_trial_index: trial_index,
+        imagined_tilt: orientation,
+        hidden_real_stimulus_present: show_hidden_stimulus ? 1 : 0,
+        hidden_real_stimulus_opacity: show_hidden_stimulus ? hidden_stimulus_opacity : 0
+      },
+      on_finish: function() {
+        clearInterval(interval_ID);
+      }
+    };
+  }
+
+  function make_vividness_rating_trial(trial_index, orientation, show_hidden_stimulus = false) {
+    const gabor_file = orientation === 'left' ? 'imgs/gabor_left_sand.png' : 'imgs/gabor_right_sand.png';
+     getGaborFile(orientation);
+
+    return {
+      type: jsPsychSurveyHtmlForm,
+      preamble: `
+        <div style="text-align:center; max-width:1000px; margin:0 auto;">
+          <h2>Hoe goed zag je de strepen voor ?</h2>
+          <p>Kies het plaatje dat er het meest op lijkt.</p>
+        </div>
+      `,
+      html: `
+        <div style="
+          display:flex;
+          justify-content:center;
+          gap:20px;
+          flex-wrap:wrap;
+          max-width:1100px;
+          margin:20px auto 0 auto;
+        ">
+          <label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="1" required>
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            </div>
+            <div style="margin-top:8px;">Helemaal niks</div>
+          </label>
+
+          <label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="2" required>
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.28;">
+            </div>
+            <div style="margin-top:8px;">Klein beetje</div>
+          </label>
+
+          <label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="3" required>
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.44;">
+            </div>
+            <div style="margin-top:8px;">Best goed</div>
+          </label>
+
+          <label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="4" required>
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.60;">
+            </div>
+            <div style="margin-top:8px">Heel goed</div>
+          </label>
+
+          <label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="5" required>
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.78;">
+            </div>
+            <div style="margin-top:8px;">Super goed</div>
+          </label>
+        </div>
+      `,
+      button_label: "Verder",
+      save_trial_parameters: {
+        preamble: false,
+        html: false,
+        button_label: false
+      },
+      data: {
+        phase: "vividness_rating",
+        vividness_trial_index: trial_index,
+        imagined_tilt: orientation,
+        hidden_real_stimulus_present: show_hidden_stimulus ? 1 : 0
+      },
+      on_finish: function(data) {
+        const response = data.response;
+        data.vividness_rating = Number(response.vividness);
+        data.selected_opacity = vividness_opacities[data.vividness_rating - 1];
+      }
+    };
+  }
+
+  const awareness_check = {
+    type: jsPsychSurveyHtmlForm,
+    preamble: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <h2><strong>Nog één vraag!</strong></h2>
+        <p>Waren er bij het laatste rondje echte strepen in beeld?</p>
+      </div>
+    `,
+    html: `
+      <div style="max-width:700px; margin:30px auto; text-align:left; font-size:18px;">
+        <p>
+          <label>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="yes" required>
+            Ja
+          </label>
+        </p>
+
+        <p>
+          <label>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="no" required>
+            Nee
+          </label>
+        </p>
+      </div>
+    `,
+    button_label: "Verder",
+    save_trial_parameters: {
+      preamble: false,
+      html: false,
+      button_label: false
+    },
+    data: {
+      phase: "awareness_check",
+      actual_hidden_stimulus_trial: hidden_stimulus_trial_index
+    },
+    on_finish: function(data) {
+      const response = data.response;
+      data.noticed_real_stimulus_last_trial = response.noticed_real_stimulus_last_trial || "";
+      data.correct_detection_last_trial =
+        response.noticed_real_stimulus_last_trial === "yes" ? 1 : 0;
+    }
+  };
+
+//DEEL 2
+  let dynamic_noise_duration = 3000;
+  let single_frame_duration = 100;
+  let inter_trial_interval = 800;
+  const total_task_duration = 3 * 60 * 1000;
+
+  let main_task_start_time = null;
+  let running_trial_number = 0;
+  let current_external_condition = null;
+
+  const target_opacity = 0.11;
+
+  function key_to_response(key_press) {
+    if (key_press === 'ArrowLeft') return 'left';
+    if (key_press === 'ArrowRight') return 'right';
+    if (key_press === 'ArrowUp' || key_press === 'ArrowDown') return 'absent';
+    return 'no_response';
+  }
+
+  function get_correct_response_label(external_condition) {
+    if (external_condition === 'left') return 'left';
+    if (external_condition === 'right') return 'right';
+    if (external_condition === 'absent') return 'absent';
+    return 'undefined';
+  }
+
+  function get_congruency(imagery_condition, external_condition) {
+    if (external_condition === 'absent') return 'absent_external';
+    if (imagery_condition === external_condition) return 'congruent';
+    return 'incongruent';
+  }
+
+  function sample_external_condition() {
+    return jsPsych.randomization.sampleWithoutReplacement(['left', 'right', 'absent'], 1)[0];
+  }
+
+  const global_imagery_condition = vividness_imagery_condition;
+
+  const main_left_gabor = makeFabricGabor(gabor_left_img, 1);
+  const main_right_gabor = makeFabricGabor(gabor_right_img, 1);
+
+  function make_global_imagery_instruction(imagery_condition) {
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Nu begint het echte spel</strong></p>
+
+          <div style="margin:10px 0 15px 0;">
+            ${zebraImageHTML(imagery_condition, 230)}
+          </div>
+
+          <p>
+            Blijf tijdens alle volgende rondes de <strong>strepen</strong> naar ${zebraLabel(imagery_condition)} inbeelden.
+          </p>
+
+          <p>
+            Vanaf nu kan er soms ook <strong>echt een zebra</strong> in de zandstorm staan.
+          </p>
+
+          <p>
+            Soms zie je die zebra echt een klein beetje.
+            Soms ook niet.
+          </p>
+
+          <p>
+            Jij blijft dus de strepen inbeelden, maar kijkt óók goed welke kant de <strong>echte strepen</strong> op staan.
+          </p>
+        </div>
+      `,
+      choices: ['Verder'],
+      data: {
+        phase: 'global_imagery_instruction',
+        imagery_condition: imagery_condition
+      },
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false
+      }
+    };
+  }
+
+  function make_dynamic_trial(imagery_condition, gabor_opacity, noise_duration = null) {
+    let interval_ID;
+    let timestamp;
+    let delta_times = [];
+    let gabor_fabric_img = null;
+    let img_sand_filter = new fabric.Rect({
+        fill:'#A66B25',
+        opacity:0.7,
+    })
+
+
+    return {
+      type: jsPsychCanvasKeyboardResponse,
+      canvas_size: canvas_size,
+      trial_duration: noise_duration,
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false,
+        canvas_size: false
+      },
+      stimulus: function() {
+        const external_condition = current_external_condition;
+
+        if (external_condition === 'left') {
+          gabor_fabric_img = main_left_gabor;
+        } else if (external_condition === 'right') {
+          gabor_fabric_img = main_right_gabor;
+        } else {
+          gabor_fabric_img = null;
+        }
+
+        let shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+
+        timestamp = performance.now();
+        let canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
+          backgroundColor: 'white',
+          centeredScaling: true
+        });
+
+        let nth_frame = 0;
+
+        interval_ID = setInterval(() => {
+          canvas.remove(...canvas.getObjects());
+
+          canvas.add(shuffled_noise_imgs[nth_frame]);
+          nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
+
+          if (external_condition !== 'absent' && gabor_fabric_img !== null) {
+            gabor_fabric_img.opacity = gabor_opacity;
+            canvas.add(gabor_fabric_img);
+          }
+        
+          img_sand_filter.set({
+            width:  shuffled_noise_imgs[nth_frame].width,
+            height: shuffled_noise_imgs[nth_frame].height,
+            left: canvas_size[0] / 2,
+            top: canvas_size[1] / 2,
+            scaleX: shuffled_noise_imgs[nth_frame].scaleX,
+            scaleY: shuffled_noise_imgs[nth_frame].scaleY,
+            originX: 'center', originY: 'center',
+          })
+          img_sand_filter.setCoords()
+          
+          canvas.add(img_sand_filter);
+
+          canvas.renderAll();
+
+          delta_times.push(Math.round(performance.now() - timestamp));
+          timestamp = performance.now();
+        }, single_frame_duration);
+      },
+      choices: ['ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'],
+      response_ends_trial: true,
+      data: function() {
+        return {
+          phase: 'main_trial',
+          trial_number: running_trial_number,
+          imagery_condition: imagery_condition,
+          external_condition: current_external_condition,
+          gabor_opacity: current_external_condition === 'absent' ? 0 : gabor_opacity,
+          correct_response: get_correct_response_label(current_external_condition),
+          congruency: get_congruency(imagery_condition, current_external_condition),
+          noise_duration: noise_duration,
+          single_frame_duration: single_frame_duration
+        };
+      },
+      on_finish: function(data) {
+        clearInterval(interval_ID);
+
+        data.frame_times = JSON.stringify(delta_times);
+        data.n_recorded_frames = delta_times.length;
+        data.response_label = key_to_response(data.response);
+        data.correct = data.response_label === data.correct_response ? 1 : 0;
+        data.elapsed_main_task_time_ms = Math.round(performance.now() - main_task_start_time);
+      }
+    };
+  }
+
+  function make_trial_divider() {
+    return {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "<div style='font-size:32px; text-align:center;'>+</div>",
+      choices: "NO_KEYS",
+      trial_duration: inter_trial_interval,
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false
+      },
+      data: function() {
+        return {
+          phase: 'trial_divider',
+          upcoming_trial_number: running_trial_number
+        };
+      }
+    };
+  }
+
+  function make_main_task_reminder(imagery_condition) {
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <div style="max-width:900px; margin:0 auto; text-align:center;">
+          <h3<strong>Even een korte herinnering</strong></h3>
+          <p>
+            Blijf steeds de <strong>strepen</strong> van ${zebraName(imagery_condition)} inbeelden.
+          </p>
+          <p>
+            Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in de zandstorm.
+          </p>
+          <div style="margin:18px 0;">
+            <img src="${getGaborFile(imagery_condition)}" style="width:220px; height:220px;" alt="strepen van ${zebraName(imagery_condition)}">
+          </div>
+          <p>
+            Dus: blijf deze strepen inbeelden, en antwoord over de zebra die je echt zag.
+          </p>
+        </div>
+      `,
+      choices: ['Verder'],
+      save_trial_parameters: {
+        stimulus: false,
+        choices: false
+      },
+      data: {
+        phase: 'main_task_reminder',
+        imagery_condition: imagery_condition
+      }
+    };
+  }
+
+  const welcome = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Nu begint deel 2</strong></p>
+        ${zebraImageHTML(oppositeOrientation(global_imagery_condition), 220)}
+        <p>
+          Dit is zebra <strong>${zebraName(oppositeOrientation(global_imagery_condition))}</strong>.
+        </p>
+        <p>
+          De strepen van ${zebraName(oppositeOrientation(global_imagery_condition))} lopen naar <strong>${zebraLabel(oppositeOrientation(global_imagery_condition))}</strong>.
+        </p>
+        <p>
+          Jij blijft nog steeds de strepen van <strong>${zebraName(global_imagery_condition)}</strong> inbeelden.
+        </p>
+        <p>
+          Maar nu kan er soms ook <strong>echt een zebra</strong> in de zandstorm staan: ${zebraName(global_imagery_condition)} of ${zebraName(oppositeOrientation(global_imagery_condition))}.
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'general_instruction' }
+  };
+
+  const example_left_screen = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Voorbeeld 1</strong></p>
+
+        <p>
+          Als je een zebra ziet met strepen naar <strong>LINKS</strong>, druk je op de
+          <strong>linkerpijl</strong>.
+        </p>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:36px; flex-wrap:wrap; margin:16px 0;">
+          <div>
+            ${zebraImageHTML('left', 220)}
+          </div>
+          <div>
+            <img src="imgs/gabor_left.png" style="width:220px; height:220px;">
+          </div>
+        </div>
+
+        <p>
+          Dus, strepen zo = <strong>Linkerpijl</strong>
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'orientation_example_left' }
+  };
+
+  const example_right_screen = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Voorbeeld 2</strong></p>
+
+        <p>
+          Als je een zebra ziet met strepen naar <strong>RECHTS</strong>, druk je op de
+          <strong>rechterpijl</strong>.
+        </p>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:36px; flex-wrap:wrap; margin:16px 0;">
+          <div>
+            ${zebraImageHTML('right', 220)}
+          </div>
+          <div>
+            <img src="imgs/gabor_right.png" style="width:220px; height:220px;">
+          </div>
+        </div>
+
+        <p>
+          Dus, strepen zo = <strong>rechterpijl</strong>
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'orientation_example_right' }
+  };
+
+  const response_instruction = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Wat is nu jouw taak?</strong></p>
+
+        <p>Blijf de strepen van <strong>${zebraName(global_imagery_condition)}</strong> inbeelden.</p>
+        <p>Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in zandstorm.</p>
+        <p><strong>Linkerpijl</strong> = strepen naar LINKS</p>
+        <p><strong>Rechterpijl</strong> = strepen naar RECHTS</p>
+        <p><strong>Pijl omhoog of omlaag</strong> = ik zag geen zebra!</p>
+
+        <p style="font-size:24px; margin-top:18px;">
+          Druk zo snel mogelijk maar probeer geen fouten te maken!
+        </p>
+      </div>
+    `,
+    choices: ['Verder'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'general_instruction' }
+  };
+
+  const start_main = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:800px; margin:0 auto; text-align:center;">
+        <p style="font-size:24px;"><strong>Klaar?</strong></p>
+        <p>Nu begint het echte spel. Success!</p>
+      </div>
+    `,
+    choices: ['Start het spel'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'start_main' }
+  };
+
+  const mark_main_task_start = {
+    type: jsPsychCallFunction,
+    func: function() {
+      main_task_start_time = performance.now();
+      running_trial_number = 0;
+    },
+    save_trial_parameters: {
+      func: false
+    },
+    data: { phase: 'mark_main_task_start' }
+  };
+
+  const end_screen = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div style="max-width:800px; margin:0 auto; text-align:center;">
+        <p style="font-size:26px;"><strong>Goed gedaan</strong></p>
+        <p>Je bent klaar.</p>
+        <p>Je antwoorden worden nu opgeslagen.</p>
+      </div>
+    `,
+    choices: ['Afronden'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'end_screen' }
+  };
+
+  const timed_main_task = {
+    timeline: [
+      {
+        type: jsPsychCallFunction,
+        func: function() {
+          running_trial_number++;
+        },
+        save_trial_parameters: { func: false },
+        data: { phase: 'increment_trial_counter' }
+      },
+      {
+        timeline: [make_trial_divider()],
+        conditional_function: function() {
+          return running_trial_number > 1;
+        }
+      },
+      {
+        timeline: [make_main_task_reminder(global_imagery_condition)],
+        conditional_function: function() {
+          return running_trial_number > 1 && (running_trial_number - 1) % 10 === 0;
+        }
+      },
+      {
+        type: jsPsychCallFunction,
+        func: function() {
+          current_external_condition = sample_external_condition();
+        },
+        save_trial_parameters: {  func: false   },
+        data: function() {
+          return {
+            phase: 'sample_external_condition',
+            trial_number: running_trial_number,
+            sampled_external_condition: current_external_condition
+          };
+        }
+      },
+      make_dynamic_trial(
+        global_imagery_condition,
+        target_opacity,
+        dynamic_noise_duration
+      )
+    ],
+    loop_function: function() {
+      const elapsed = performance.now() - main_task_start_time;
+      return elapsed < total_task_duration;
+    }
+  };
+
+
+
+//TIMELINE
+  const timeline = [preload,        demographics, zebra_intro, sandstorm_intro, stripes_intro];
+
+  for (let t = 0; t < total_vividness_trials; t++) {
+    const trial_index = t + 1;
+    let orientation, show_hidden_stimulus;   // = vividness_imagery_condition;
+
+    if (trial_index === hidden_stimulus_trial_index){
+
+        if (hidden_stimulus_congruency == 'absent') {
+            show_hidden_stimulus = false
+            orientation = 'left' // irrelevant
+        }
+        if (hidden_stimulus_congruency == 'congruent') {
+            show_hidden_stimulus = true
+            orientation = vividness_imagery_condition
+        }    
+        if (hidden_stimulus_congruency == 'incongruent') {
+            show_hidden_stimulus = true
+            orientation = (vividness_imagery_condition == 'left') ? 'right' : 'left'
+        }
+    } else {
+        show_hidden_stimulus = false
+        orientation = vividness_imagery_condition;
+    }
+
+
+
+    timeline.push(make_vividness_instruction_trial(trial_index, orientation));
+    timeline.push(make_vividness_noise_trial(trial_index, orientation, show_hidden_stimulus));
+    timeline.push(make_vividness_rating_trial(trial_index, orientation, show_hidden_stimulus));
+  }
+
+  timeline.push(awareness_check);
+
+  timeline.push(welcome);
+  timeline.push(example_left_screen);
+  timeline.push(example_right_screen);
+  timeline.push(response_instruction);
+  timeline.push(make_global_imagery_instruction(global_imagery_condition));
+  timeline.push(start_main);
+  timeline.push(mark_main_task_start);
+  timeline.push(timed_main_task);
+  timeline.push(end_screen);
+
+  jsPsych.run(timeline);
+</script>
+</html>

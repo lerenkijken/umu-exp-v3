@@ -1,0 +1,57 @@
+.jspsych-display-element {
+    background-color: #7a4e17;
+}
+
+.jspsych-content-wrapper {
+    background-image: url("imgs/sandstorm.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    color:white;
+    text-shadow: 0.2em 0.2em 0.08em #222222;
+    font-size: 20px; 
+}
+.jspsych-content {
+    transform: translate(50%) -50%;
+}
+
+.jspsych-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2em;
+    font-size: 30px;
+    border: 10px solid transparent;
+    border-radius: 16px;
+    color: white;
+    background-color: #2b00c8d0;
+    padding: 0.6em 1.2em;
+    /*font-family: Malington;*/
+}
+.jspsych-space-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  color: #333333;
+  text-align: center;
+  pointer-events: none;
+  text-shadow:none ;
+}
+.jspsych-space-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.jspsych-btn:hover {
+  background-color: #2b00c8; 
+  border-color: #2b00c8;
+  color: white;
+}
+.jspsych-btn:disabled {
+  background-color: #2b00c800;
+  color: #aaaaaa00;
+  border-color: #d13d3d00;
+  cursor:auto;
+}
