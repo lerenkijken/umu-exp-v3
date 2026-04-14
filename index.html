@@ -169,7 +169,7 @@
   const hidden_stimulus_trial_index = 6;
   const total_vividness_trials = 6;
   const hidden_stimulus_opacity = 0.15;
-  const vividness_opacities = [0, 0.28, 0.44, 0.60, 0.78];
+  const vividness_opacities = [0, 0.14, 0.28, 0.44, 0.60];
 
   const vividness_imagery_condition = jsPsych.randomization.sampleWithoutReplacement(['right', 'left'], 1)[0];
   const hidden_stimulus_congruency = jsPsych.randomization.sampleWithoutReplacement(['congruent', 'incongruent', 'absent'], 1)[0];
@@ -673,7 +673,7 @@
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="2" required>
             <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.28;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[1]};">
             </div>
             <div style="margin-top:8px;">Klein beetje</div>
           </label>
@@ -681,7 +681,7 @@
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="3" required>
             <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.44;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[2]};">
             </div>
             <div style="margin-top:8px;">Best goed</div>
           </label>
@@ -689,7 +689,7 @@
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="4" required>
             <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.60;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[3]};">
             </div>
             <div style="margin-top:8px">Heel goed</div>
           </label>
@@ -697,7 +697,7 @@
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="5" required>
             <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.78;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[4]};">
             </div>
             <div style="margin-top:8px;">Super goed</div>
           </label>
