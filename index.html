@@ -22,14 +22,15 @@
 
 <script>
 // instellingen
-  const subject_id = Math.random().toString(36).substring(2, 12);
-  const filename = `${subject_id}.csv`;
 
-  const jsPsych = initJsPsych({
-    on_finish: () => {
-      jsPsych.data.get().localSave('csv', filename);
-    }
-  });
+
+///////////////////////////////////////////////
+///
+///
+///  EXTRA STUFF 
+///
+///
+///////////////////////////////////////////////
 
   function getContinueButton() {
     return document.querySelector(
@@ -135,16 +136,64 @@
     setupSpaceHintObserver();
   }
 
+
+
+
+
+
+
+
+///////////////////////////////////////////////
+///
+///
+///  EXPEIMRENT SCRIPT
+///
+///
+///////////////////////////////////////////////
+
+
+  const jsPsych = initJsPsych({
+    on_finish: () => {
+      jsPsych.data.get().localSave('csv', filename);
+    }
+  });
+
+
+  const subject_id = jsPsych.randomization.randomID(12);
+  const filename = `${subject_id}.csv`;
+
+  // deel 2 constants
+  const vividness_single_frame_duration = 100;
+  const vividness_noise_duration = 2000;
+  const hidden_stimulus_trial_index = 6;
+  const total_vividness_trials = 6;
+  const hidden_stimulus_opacity = 0.15;
+  const vividness_opacities = [0, 0.28, 0.44, 0.60, 0.78];
+
   const vividness_imagery_condition = jsPsych.randomization.sampleWithoutReplacement(['right', 'left'], 1)[0];
-  const hidden_stimulus_congruency = jsPsych.randomization.sampleWithoutReplacement(['congruent', 'congruent', 'absent'], 1)[0];
+  const hidden_stimulus_congruency = jsPsych.randomization.sampleWithoutReplacement(['congruent', 'incongruent', 'absent'], 1)[0];
+
+
+  let dynamic_noise_duration = 3000;
+  let single_frame_duration = 100;
+  let inter_trial_interval = 800;
+  const total_task_duration = 3 * 60 * 1000;
+
+  let main_task_start_time = null;
+  let running_trial_number = 0;
+  let current_external_condition = null;
+
+  const target_opacity = 0.15;
+
+
 
   jsPsych.data.addProperties({
     participantID: subject_id,
     filename: filename,
     experiment: "zebra_in_zandstorm_gecombineerd",
-    vividness_hidden_stimulus_opacity: 0.11,
+    vividness_hidden_stimulus_opacity: hidden_stimulus_opacity,
     main_task_duration_ms: 180000,
-    main_task_stimulus_opacity: 0.11,
+    main_task_stimulus_opacity: target_opacity,
     vividness_imagery_condition: vividness_imagery_condition,
     hidden_stimulus_congruency: hidden_stimulus_congruency,
 
@@ -156,28 +205,31 @@
   const gabor_img_dim = [250, 250];
 
   const noise_files = [];
-  const fabric_noise_imgs = [];
 
-  for (let i = 0; i < 50; i++) {
-    const img_src = `imgs/rand_noise_${i}.png`;
-    noise_files.push(img_src);
+  function get_fabric_noise_imgs(){
+    const fabric_noise_imgs = [];
 
-    const img = new Image();
-    img.src = img_src;
+    for (let i = 0; i < 50; i++) {
+      const img_src = `imgs/rand_noise_${i}.png`;
+      noise_files.push(img_src);
 
-    const fabric_img = new fabric.Image(img, {
-      left: 0,
-      top: 0,
-      width: noise_imgs_dim[0],
-      height: noise_imgs_dim[1],
-      originX: 'left',
-      originY: 'top'
-    });
+      const img = new Image();
+      img.src = img_src;
 
-    fabric_img.scaleToWidth(canvas_size[0]);
-    fabric_noise_imgs.push(fabric_img);
+      const fabric_img = new fabric.Image(img, {
+        left: 0,
+        top: 0,
+        width: noise_imgs_dim[0],
+        height: noise_imgs_dim[1],
+        originX: 'left',
+        originY: 'top'
+      });
+
+      fabric_img.scaleToWidth(canvas_size[0]);
+      fabric_noise_imgs.push(fabric_img);
+    }
+    return fabric_noise_imgs
   }
-
   const gabor_left_img = new Image();
   gabor_left_img.src = 'imgs/gabor_left.png';
 
@@ -208,7 +260,13 @@
 
   const preload = {
     type: jsPsychPreload,
-    images: [...noise_files, 'imgs/gabor_left.png', 'imgs/gabor_right.png', 'imgs/Lieke.png','imgs/gabor_left_sand.png', 'imgs/gabor_right_sand.png' , 'imgs/Rick.png'],
+    images: [...noise_files, 
+    'imgs/Lieke.png','imgs/Rick.png',
+    'imgs/gabor_left.png', 'imgs/gabor_right.png', 
+    'imgs/gabor_left_sand.png', 'imgs/gabor_right_sand.png',
+    'imgs/sandstorm.png', 'imgs/noise_sandstorm.png', 'imgs/sandstorm_intro.png'
+   ],
+   
     save_trial_parameters: {
       images: false
     }
@@ -318,90 +376,6 @@
     }
   };
 
-  const sandstorm_intro_old = {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: `
-      <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:26px;"><strong>Straks zie je steeds een zandstorm</strong></p>
-        ${sandstormImageHTML(260)}
-        <p>
-          In die zandstorm is het vaak moeilijk om iets goed te zien.
-        </p>
-        <p>
-          Daarom is het jouw taak om straks steeds de <strong>strepen</strong> van ${zebraName(vividness_imagery_condition)} in te beelden.
-        </p>
-      </div>
-    `,
-    choices: ['Verder'],
-    save_trial_parameters: {
-      stimulus: false,
-      choices: false
-    },
-    data: {
-      phase: 'sandstorm_intro'
-    }
-  };
-
-
-const sandstorm_intro_old2 = {
-    type: jsPsychCanvasButtonResponse,
-    canvas_size: [260, 260],
-    stimulus: function() {
-        preamble = `
-            <h2><strong>Straks zie je steeds een zandstorm</strong></h2>
-            <p>In die zandstorm is het vaak moeilijk om iets goed te zien.<p>
-            <p>
-            Daarom is het jouw taak om straks steeds de <strong>strepen</strong> van ${zebraName(vividness_imagery_condition)} in te beelden.
-            </p>
-        `
-        // // add preamble 
-        document.getElementById("jspsych-content").innerHTML = preamble + document.getElementById("jspsych-content").innerHTML
-        document.getElementById("jspsych-canvas-stimulus").style.margin = 'auto';
-
-
-        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
-        
-
-
-        const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus");
-        
-
-        let img_sand_filter = new fabric.Circle({
-            fill:'#A66B25',
-            opacity:0.7,
-        })
-
-        let nth_frame = 0;
-        interval_ID = setInterval(() => {
-          canvas.remove(...canvas.getObjects());
-          canvas.add(shuffled_noise_imgs[nth_frame]);
-          
-          img_sand_filter.set({
-            width:  260,
-            height: 260,
-            left: 130,
-            top: 130,
-            // scaleX: shuffled_noise_imgs[nth_frame].scaleX,
-            // scaleY: shuffled_noise_imgs[nth_frame].scaleY,
-            originX: 'center', originY: 'center',
-          })
-          img_sand_filter.setCoords()
-          
-          canvas.add(img_sand_filter);
-          canvas.renderAll();
-          nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
-
-        }, 100)
-      },
-    choices: ['Verder'],
-    save_trial_parameters: {
-      stimulus: false,
-      choices: false
-    },
-    data: {
-      phase: 'sandstorm_intro'
-    }
-  };
 
   let intro_canvas_size = [260,260]
   const sandstorm_intro = {
@@ -415,7 +389,7 @@ const sandstorm_intro_old2 = {
       },
       stimulus: function() {
         let preamble = `
-            <h2><strong>Straks zit je een zandstorm zoals hieronder.</strong></h2>
+            <h2><strong>Straks kijk je door je verrekijker in de zandstorm zoals hieronder.</strong></h2>
             <p>In een zandstorm is het moeilijk om iets goed te zien.<p>
             <p>
             Daarom is het jouw taak om straks steeds de <strong>strepen van ${zebraName(vividness_imagery_condition)} in te beelden</strong>.
@@ -432,9 +406,10 @@ const sandstorm_intro_old2 = {
         parentDiv.insertBefore(sp1, sp2);
 
 
-        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...get_fabric_noise_imgs()]);
+
         const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
-          backgroundColor: 'white'
+          backgroundColor: 'rgba(0,0,0,0)'
         });
 
         // const gabor_image_obj = getGaborImageObject(orientation);
@@ -445,16 +420,38 @@ const sandstorm_intro_old2 = {
             opacity:0.7,
         })
 
+        let circle_clipPath = new fabric.Circle({
+          radius: shuffled_noise_imgs[0].width / 2,
+          top: 0,
+          left: 0,
+          originX: 'center', originY: 'center',
+        });
 
+        let telescope_width = intro_canvas_size[0]/ 20
+        let telescope = new fabric.Circle({
+          radius: intro_canvas_size[0]/ 2 - telescope_width/ 2,
+          top: intro_canvas_size[0]/ 2,
+          left: intro_canvas_size[0]/ 2,
+          originX: 'center', originY: 'center',
+          fill: 'rgba(0,0,0,0)',
+          stroke: 'k',
+          strokeWidth: telescope_width
+        });
+
+
+        img_sand_filter.clipPath = circle_clipPath;
+        
         let nth_frame = 0;
 
         interval_ID = setInterval(() => {
           canvas.remove(...canvas.getObjects());
-          canvas.add(shuffled_noise_imgs[nth_frame]);
 
-        //   if (show_hidden_stimulus) {
-        //     canvas.add(hidden_gabor);
-        //   }
+          shuffled_noise_imgs[nth_frame].scaleToWidth(intro_canvas_size[0])
+
+          shuffled_noise_imgs[nth_frame].clipPath = circle_clipPath;
+
+
+          canvas.add(shuffled_noise_imgs[nth_frame]);
 
          img_sand_filter.set({
             width:  shuffled_noise_imgs[nth_frame].width,
@@ -465,8 +462,11 @@ const sandstorm_intro_old2 = {
             scaleY: shuffled_noise_imgs[nth_frame].scaleY,
             originX: 'center', originY: 'center',
           })
+
           img_sand_filter.setCoords()
           canvas.add(img_sand_filter);
+          canvas.add(telescope);
+          
 
           canvas.renderAll();
           nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
@@ -487,7 +487,7 @@ const sandstorm_intro_old2 = {
         <p>
           Dit plaatje laat een klein stukje van de strepen van ${zebraName(vividness_imagery_condition)} zien.
         <br>
-          Als je straks in de zandstorm zit,<br>probeer dan de strepen van ${zebraName(vividness_imagery_condition)} zo goed als je kan voor je te zien in de storm.
+          Als je straks in de zandstorm kijkt,<br>probeer dan de strepen van ${zebraName(vividness_imagery_condition)} zo goed als je kan voor je te zien in de storm.
         </p>
       </div>
     `,
@@ -501,20 +501,19 @@ const sandstorm_intro_old2 = {
     }
   };
 
-//deel 1
-  const vividness_single_frame_duration = 100;
-  const vividness_noise_duration = 2000;
-  const hidden_stimulus_trial_index = 6;
-  const total_vividness_trials = 6;
-  const hidden_stimulus_opacity = 0.11;
-  const vividness_opacities = [0, 0.28, 0.44, 0.60, 0.78];
+//deel 2
+
+
+
+
+
   function make_vividness_instruction_trial(trial_index, orientation) {
     const title_text = trial_index === 1
       ? 'Zometeen komt de eerste zandstorm.'
       : 'Er komt weer een zandstorm.';
     const prompt_text = trial_index === 1
-      ? `Probeer dan zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in te beelden.`
-      : `Beeld opnieuw zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in.`;
+      ? `Probeer zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in te beelden in de zandstorm.`
+      : `Beeld je opnieuw zo goed mogelijk de <strong>strepen van ${zebraName(orientation)}</strong> in.`;
 
     return {
       type: jsPsychHtmlButtonResponse,
@@ -557,10 +556,35 @@ const sandstorm_intro_old2 = {
         canvas_size: false
       },
       stimulus: function() {
-        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+
+        const shuffled_noise_imgs = jsPsych.randomization.shuffle([...get_fabric_noise_imgs()]);
+
         const canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
-          backgroundColor: 'white'
+          backgroundColor: 'rgba(0,0,0,0)'
         });
+
+
+
+        let circle_clipPath = new fabric.Circle({
+          radius: shuffled_noise_imgs[0].width / 2,
+          top: 0,
+          left: 0,
+          originX: 'center', originY: 'center',
+        });
+
+        let telescope_width = canvas_size[0] * 0.03
+        let telescope = new fabric.Circle({
+          radius: canvas_size[0]/ 2 - telescope_width/ 2,
+          top: canvas_size[0]/ 2,
+          left: canvas_size[0]/ 2,
+          originX: 'center', originY: 'center',
+          fill: 'rgba(0,0,0,0)',
+          stroke: 'k',
+          strokeWidth: telescope_width
+        });
+
+
+        
 
         const gabor_image_obj = getGaborImageObject(orientation);
         const hidden_gabor = makeFabricGabor(gabor_image_obj, hidden_stimulus_opacity);
@@ -575,6 +599,9 @@ const sandstorm_intro_old2 = {
 
         interval_ID = setInterval(() => {
           canvas.remove(...canvas.getObjects());
+
+          shuffled_noise_imgs[nth_frame].clipPath = circle_clipPath;
+          
           canvas.add(shuffled_noise_imgs[nth_frame]);
 
           if (show_hidden_stimulus) {
@@ -590,8 +617,12 @@ const sandstorm_intro_old2 = {
             scaleY: shuffled_noise_imgs[nth_frame].scaleY,
             originX: 'center', originY: 'center',
           })
+
+          img_sand_filter.clipPath = circle_clipPath;
           img_sand_filter.setCoords()
+
           canvas.add(img_sand_filter);
+          canvas.add(telescope)
 
           canvas.renderAll();
           nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
@@ -612,13 +643,13 @@ const sandstorm_intro_old2 = {
 
   function make_vividness_rating_trial(trial_index, orientation, show_hidden_stimulus = false) {
     const gabor_file = orientation === 'left' ? 'imgs/gabor_left_sand.png' : 'imgs/gabor_right_sand.png';
-     getGaborFile(orientation);
+    
 
     return {
       type: jsPsychSurveyHtmlForm,
       preamble: `
         <div style="text-align:center; max-width:1000px; margin:0 auto;">
-          <h2>Hoe goed zag je de strepen voor ?</h2>
+          <h2>Hoe goed "zag" je de strepen in je inbeelding?</h2>
           <p>Kies het plaatje dat er het meest op lijkt.</p>
         </div>
       `,
@@ -633,14 +664,14 @@ const sandstorm_intro_old2 = {
         ">
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="1" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
             </div>
             <div style="margin-top:8px;">Helemaal niks</div>
           </label>
 
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="2" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
               <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.28;">
             </div>
             <div style="margin-top:8px;">Klein beetje</div>
@@ -648,7 +679,7 @@ const sandstorm_intro_old2 = {
 
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="3" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
               <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.44;">
             </div>
             <div style="margin-top:8px;">Best goed</div>
@@ -656,7 +687,7 @@ const sandstorm_intro_old2 = {
 
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="4" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
               <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.60;">
             </div>
             <div style="margin-top:8px">Heel goed</div>
@@ -664,7 +695,7 @@ const sandstorm_intro_old2 = {
 
           <label style="cursor:pointer; text-align:center;">
             <input type="radio" name="vividness" value="5" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:2px solid #bbb; border-radius:8px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
               <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.78;">
             </div>
             <div style="margin-top:8px;">Super goed</div>
@@ -696,7 +727,7 @@ const sandstorm_intro_old2 = {
     preamble: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
         <h2><strong>Nog één vraag!</strong></h2>
-        <p>Waren er bij het laatste rondje echte strepen in beeld?</p>
+        <p>Waren er in het laatste rondje echt strepen te zien?</p>
       </div>
     `,
     html: `
@@ -704,14 +735,23 @@ const sandstorm_intro_old2 = {
         <p>
           <label>
             <input type="radio" name="noticed_real_stimulus_last_trial" value="yes" required>
-            Ja
+            Ja, echte strepen naar LINKS:
           </label>
+         <img src='imgs/gabor_left_sand.png'; width=75; style="vertical-align: middle"> </img>
+        </p> 
+
+        <p>
+          <label>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="yes" required>
+            Ja, echte strepen naar RECHTS:
+          </label>
+          <img src='imgs/gabor_right_sand.png'; width=75; style="vertical-align: middle"> </img>
         </p>
 
         <p>
           <label>
             <input type="radio" name="noticed_real_stimulus_last_trial" value="no" required>
-            Nee
+            Nee, GEEN echte strepen.
           </label>
         </p>
       </div>
@@ -735,16 +775,7 @@ const sandstorm_intro_old2 = {
   };
 
 //DEEL 2
-  let dynamic_noise_duration = 3000;
-  let single_frame_duration = 100;
-  let inter_trial_interval = 800;
-  const total_task_duration = 3 * 60 * 1000;
 
-  let main_task_start_time = null;
-  let running_trial_number = 0;
-  let current_external_condition = null;
-
-  const target_opacity = 0.11;
 
   function key_to_response(key_press) {
     if (key_press === 'ArrowLeft') return 'left';
@@ -780,27 +811,22 @@ const sandstorm_intro_old2 = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Nu begint het echte spel</strong></p>
+        <h2><strong>Nu begint het tweede deel!</strong></h2>
 
           <div style="margin:10px 0 15px 0;">
             ${zebraImageHTML(imagery_condition, 230)}
           </div>
 
           <p>
-            Blijf tijdens alle volgende rondes de <strong>strepen</strong> naar ${zebraLabel(imagery_condition)} inbeelden.
+            Blijf tijdens alle volgende rondes de <strong>strepen naar ${zebraLabel(imagery_condition)} inbeelden</strong>.
           </p>
 
           <p>
-            Vanaf nu kan er soms ook <strong>echt een zebra</strong> in de zandstorm staan.
+            Vanaf nu zul je soms <strong>Lieke</strong> zien, soms <strong>Rick</strong> en soms <strong>GEEN zebra.</strong>.
           </p>
 
           <p>
-            Soms zie je die zebra echt een klein beetje.
-            Soms ook niet.
-          </p>
-
-          <p>
-            Jij blijft dus de strepen inbeelden, maar kijkt óók goed welke kant de <strong>echte strepen</strong> op staan.
+            Jij blijft dus de strepen inbeelden, maar kijkt ook goed óf er een zebra is en wélke dan.
           </p>
         </div>
       `,
@@ -820,7 +846,7 @@ const sandstorm_intro_old2 = {
     let interval_ID;
     let timestamp;
     let delta_times = [];
-    let gabor_fabric_img = null;
+    let gabor_fabric_img;
     let img_sand_filter = new fabric.Rect({
         fill:'#A66B25',
         opacity:0.7,
@@ -839,26 +865,51 @@ const sandstorm_intro_old2 = {
       stimulus: function() {
         const external_condition = current_external_condition;
 
+
+
         if (external_condition === 'left') {
-          gabor_fabric_img = main_left_gabor;
+          gabor_fabric_img = makeFabricGabor(gabor_left_img, 1);
         } else if (external_condition === 'right') {
-          gabor_fabric_img = main_right_gabor;
+          gabor_fabric_img = makeFabricGabor(gabor_right_img, 1);;
         } else {
           gabor_fabric_img = null;
         }
 
-        let shuffled_noise_imgs = jsPsych.randomization.shuffle([...fabric_noise_imgs]);
+        let shuffled_noise_imgs = jsPsych.randomization.shuffle([...get_fabric_noise_imgs()]);
 
         timestamp = performance.now();
         let canvas = new fabric.StaticCanvas("jspsych-canvas-stimulus", {
-          backgroundColor: 'white',
+          backgroundColor: 'rgba(0,0,0,0)',
           centeredScaling: true
         });
+        
+
+        let circle_clipPath = new fabric.Circle({
+          radius: shuffled_noise_imgs[0].width / 2,
+          top: 0,
+          left: 0,
+          originX: 'center', originY: 'center',
+        });
+
+        let telescope_width = canvas_size[0] * 0.03
+        let telescope = new fabric.Circle({
+          radius: canvas_size[0]/ 2 - telescope_width/ 2,
+          top: canvas_size[0]/ 2,
+          left: canvas_size[0]/ 2,
+          originX: 'center', originY: 'center',
+          fill: 'rgba(0,0,0,0)',
+          stroke: 'k',
+          strokeWidth: telescope_width
+        });
+
+
 
         let nth_frame = 0;
 
         interval_ID = setInterval(() => {
           canvas.remove(...canvas.getObjects());
+
+          shuffled_noise_imgs[nth_frame].clipPath = circle_clipPath
 
           canvas.add(shuffled_noise_imgs[nth_frame]);
           nth_frame = (nth_frame + 1) % shuffled_noise_imgs.length;
@@ -877,9 +928,13 @@ const sandstorm_intro_old2 = {
             scaleY: shuffled_noise_imgs[nth_frame].scaleY,
             originX: 'center', originY: 'center',
           })
+//
+          img_sand_filter.clipPath = circle_clipPath;
           img_sand_filter.setCoords()
-          
+
           canvas.add(img_sand_filter);
+          canvas.add(telescope)
+//
 
           canvas.renderAll();
 
@@ -964,15 +1019,32 @@ const sandstorm_intro_old2 = {
       }
     };
   }
+  const welcome_screen = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `<h1>Welkom!</h1> `+
+        `<h2>Leuk dat je mee wilt doen.</h2>`+
+      `<h2>De zebra's wachten al op je!</h2>`+
+    `<h3> Klik hier op om te beginnen.</h3>`,
+    choices: ['Begin'],
+    on_start: ()=>{
+      let el = document.getElementsByClassName('jspsych-content-wrapper')[0];
+      el.style.backgroundImage = `url("imgs/sandstorm_intro.png")`;
+    },
+    on_finish: ()=>{
+      let el = document.getElementsByClassName('jspsych-content-wrapper')[0];
+      el.style.backgroundImage = `url("imgs/sandstorm.png")`;
+    }
+  }
 
-  const welcome = {
+  
+  const intro_part_2 = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Nu begint deel 2</strong></p>
+        <h2><strong>Nu begint deel 2</strong></h2>
         ${zebraImageHTML(oppositeOrientation(global_imagery_condition), 220)}
         <p>
-          Dit is zebra <strong>${zebraName(oppositeOrientation(global_imagery_condition))}</strong>.
+          Dit is een andere zebra. Zebra <strong>${zebraName(oppositeOrientation(global_imagery_condition))}</strong>.
         </p>
         <p>
           De strepen van ${zebraName(oppositeOrientation(global_imagery_condition))} lopen naar <strong>${zebraLabel(oppositeOrientation(global_imagery_condition))}</strong>.
@@ -982,6 +1054,9 @@ const sandstorm_intro_old2 = {
         </p>
         <p>
           Maar nu kan er soms ook <strong>echt een zebra</strong> in de zandstorm staan: ${zebraName(global_imagery_condition)} of ${zebraName(oppositeOrientation(global_imagery_condition))}.
+        </p>
+        <p>
+          Laten we kort 2 voorbeelden doornemen.
         </p>
       </div>
     `,
@@ -1000,7 +1075,7 @@ const sandstorm_intro_old2 = {
         <p style="font-size:24px;"><strong>Voorbeeld 1</strong></p>
 
         <p>
-          Als je een zebra ziet met strepen naar <strong>LINKS</strong>, druk je op de
+          Als je een zebra Lieke ziet met strepen naar <strong>LINKS</strong>, druk je op de
           <strong>linkerpijl</strong>.
         </p>
 
@@ -1033,7 +1108,7 @@ const sandstorm_intro_old2 = {
         <p style="font-size:24px;"><strong>Voorbeeld 2</strong></p>
 
         <p>
-          Als je een zebra ziet met strepen naar <strong>RECHTS</strong>, druk je op de
+          Als je een zebra Rick ziet met strepen naar <strong>RECHTS</strong>, druk je op de
           <strong>rechterpijl</strong>.
         </p>
 
@@ -1069,7 +1144,7 @@ const sandstorm_intro_old2 = {
         <p>Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in zandstorm.</p>
         <p><strong>Linkerpijl</strong> = strepen naar LINKS</p>
         <p><strong>Rechterpijl</strong> = strepen naar RECHTS</p>
-        <p><strong>Pijl omhoog of omlaag</strong> = ik zag geen zebra!</p>
+        <p><strong>Pijl omhoog of omlaag</strong> = GEEN zebra</p>
 
         <p style="font-size:24px; margin-top:18px;">
           Druk zo snel mogelijk maar probeer geen fouten te maken!
@@ -1097,20 +1172,24 @@ const sandstorm_intro_old2 = {
       stimulus: false,
       choices: false
     },
-    data: { phase: 'start_main' }
-  };
-
-  const mark_main_task_start = {
-    type: jsPsychCallFunction,
-    func: function() {
+    data: { phase: 'start_main' },
+    on_finish: function() {
       main_task_start_time = performance.now();
       running_trial_number = 0;
-    },
-    save_trial_parameters: {
-      func: false
-    },
-    data: { phase: 'mark_main_task_start' }
+    }
   };
+
+  // const mark_main_task_start = {
+  //   type: jsPsychCallFunction,
+  //   func: function() {
+  //     main_task_start_time = performance.now();
+  //     running_trial_number = 0;
+  //   },
+  //   save_trial_parameters: {
+  //     func: false
+  //   },
+  //   data: { phase: 'mark_main_task_start' }
+  // };
 
   const end_screen = {
     type: jsPsychHtmlButtonResponse,
@@ -1121,7 +1200,7 @@ const sandstorm_intro_old2 = {
         <p>Je antwoorden worden nu opgeslagen.</p>
       </div>
     `,
-    choices: ['Afronden'],
+    choices: ['Afronden en oplsaan'],
     save_trial_parameters: {
       stimulus: false,
       choices: false
@@ -1180,47 +1259,47 @@ const sandstorm_intro_old2 = {
 
 
 //TIMELINE
-  const timeline = [preload,        demographics, zebra_intro, sandstorm_intro, stripes_intro];
+  const timeline = [preload, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
 
   for (let t = 0; t < total_vividness_trials; t++) {
     const trial_index = t + 1;
-    let orientation, show_hidden_stimulus;   // = vividness_imagery_condition;
+    let trial_orientation, show_hidden_stimulus;   // = vividness_imagery_condition;
 
     if (trial_index === hidden_stimulus_trial_index){
 
         if (hidden_stimulus_congruency == 'absent') {
             show_hidden_stimulus = false
-            orientation = 'left' // irrelevant
+            trial_orientation = 'left' // irrelevant
         }
         if (hidden_stimulus_congruency == 'congruent') {
             show_hidden_stimulus = true
-            orientation = vividness_imagery_condition
+            trial_orientation = vividness_imagery_condition
         }    
         if (hidden_stimulus_congruency == 'incongruent') {
             show_hidden_stimulus = true
-            orientation = (vividness_imagery_condition == 'left') ? 'right' : 'left'
+            trial_orientation = (vividness_imagery_condition == 'left') ? 'right' : 'left'
         }
     } else {
         show_hidden_stimulus = false
-        orientation = vividness_imagery_condition;
+        trial_orientation = vividness_imagery_condition;
     }
+    console.log('show_hidden_stimulus', show_hidden_stimulus)
+    console.log('orientation', trial_orientation)
 
 
-
-    timeline.push(make_vividness_instruction_trial(trial_index, orientation));
-    timeline.push(make_vividness_noise_trial(trial_index, orientation, show_hidden_stimulus));
-    timeline.push(make_vividness_rating_trial(trial_index, orientation, show_hidden_stimulus));
+    timeline.push(make_vividness_instruction_trial(trial_index, vividness_imagery_condition));
+    timeline.push(make_vividness_noise_trial(trial_index, trial_orientation, show_hidden_stimulus));
+    timeline.push(make_vividness_rating_trial(trial_index, vividness_imagery_condition, show_hidden_stimulus));
   }
 
   timeline.push(awareness_check);
 
-  timeline.push(welcome);
+  timeline.push(intro_part_2);
   timeline.push(example_left_screen);
   timeline.push(example_right_screen);
   timeline.push(response_instruction);
   timeline.push(make_global_imagery_instruction(global_imagery_condition));
   timeline.push(start_main);
-  timeline.push(mark_main_task_start);
   timeline.push(timed_main_task);
   timeline.push(end_screen);
 
