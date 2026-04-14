@@ -178,7 +178,7 @@
   let dynamic_noise_duration = 3000;
   let single_frame_duration = 100;
   let inter_trial_interval = 800;
-  const total_task_duration = 3 * 60 * 1000;
+  const total_task_duration = 3 *(60_000) // 3 minutes   ;
 
   let main_task_start_time = null;
   let running_trial_number = 0;
@@ -642,19 +642,36 @@
     };
   }
 
-  function make_vividness_rating_trial(trial_index, orientation, show_hidden_stimulus = false) {
-    const gabor_file = orientation === 'left' ? 'imgs/gabor_left_sand.png' : 'imgs/gabor_right_sand.png';
-    
+  function make_vividness_rating_trial(trial_index, orientation) {
 
     return {
       type: jsPsychSurveyHtmlForm,
-      preamble: `
+      preamble: () =>  { 
+        let q_html =  (trial_index > 2) ? '' : `<p>Kies het plaatje dat er het meest op lijkt.</p>`
+        return `
         <div style="text-align:center; max-width:1000px; margin:0 auto;">
-          <h2>Hoe goed "zag" je de strepen in je inbeelding?</h2>
-          <p>Kies het plaatje dat er het meest op lijkt.</p>
-        </div>
-      `,
-      html: `
+          <h2>Hoe goed "zag" je de strepen in je inbeelding?</h2>`+
+          q_html + 
+        `</div>
+      `},
+      html: () =>  {
+
+
+        // handle inconsistency resposnse and visuals awareness check & vividness rating
+        let gabor_file; 
+        let awareness_resp;
+        let awareness_check_trial = jsPsych.data.get().filter({phase: "awareness_check"}).values()[0]
+
+        if (awareness_check_trial ) {
+          awareness_resp = awareness_check_trial.response.noticed_real_stimulus_last_trial 
+          awareness_resp = awareness_resp == 'none' ? orientation : awareness_resp
+          gabor_file = `imgs/gabor_${awareness_resp}_sand.png`
+
+        } else {
+           gabor_file = `imgs/gabor_${orientation}_sand.png`
+        }
+
+        let choices_html = `
         <div style="
           display:flex;
           justify-content:center;
@@ -662,47 +679,27 @@
           flex-wrap:wrap;
           max-width:1100px;
           margin:20px auto 0 auto;
-        ">
-          <label style="cursor:pointer; text-align:center;">
-            <input type="radio" name="vividness" value="1" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-            </div>
-            <div style="margin-top:8px;">Helemaal niks</div>
-          </label>
+        ">`
+        let verbal_labels = ['Helemaal niks', 'Klein beetje', 'Best goed', 'Heel goed', 'Super goed']
 
-          <label style="cursor:pointer; text-align:center;">
-            <input type="radio" name="vividness" value="2" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[1]};">
-            </div>
-            <div style="margin-top:8px;">Klein beetje</div>
-          </label>
+        for (let i =0; i < 5; i++) {
+          let img_div = `<div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
+              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[i]};">
+              </div>`
 
-          <label style="cursor:pointer; text-align:center;">
-            <input type="radio" name="vividness" value="3" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[2]};">
-            </div>
-            <div style="margin-top:8px;">Best goed</div>
-          </label>
+          img_div = (trial_index > 2) ? '' : img_div
 
-          <label style="cursor:pointer; text-align:center;">
-            <input type="radio" name="vividness" value="4" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[3]};">
-            </div>
-            <div style="margin-top:8px">Heel goed</div>
-          </label>
+          choices_html += `<label style="cursor:pointer; text-align:center;">
+            <input type="radio" name="vividness" value="${i+1}" required>`+
+              img_div+ 
+            `<div style="margin-top:8px;">${verbal_labels[i]}</div>
+          </label>`
+        }
+        choices_html += `</div>`
 
-          <label style="cursor:pointer; text-align:center;">
-            <input type="radio" name="vividness" value="5" required>
-            <div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
-              <img src="${gabor_file}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:${vividness_opacities[4]};">
-            </div>
-            <div style="margin-top:8px;">Super goed</div>
-          </label>
-        </div>
-      `,
+     
+        return choices_html
+      },
       button_label: "Verder",
       save_trial_parameters: {
         preamble: false,
@@ -713,7 +710,6 @@
         phase: "vividness_rating",
         vividness_trial_index: trial_index,
         imagined_tilt: orientation,
-        hidden_real_stimulus_present: show_hidden_stimulus ? 1 : 0
       },
       on_finish: function(data) {
         const response = data.response;
@@ -735,7 +731,7 @@
       <div style="max-width:700px; margin:30px auto; text-align:left; font-size:18px;">
         <p>
           <label>
-            <input type="radio" name="noticed_real_stimulus_last_trial" value="yes" required>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="left" required>
             Ja, echte strepen naar LINKS:
           </label>
          <img src='imgs/gabor_left_sand.png'; width=75; style="vertical-align: middle"> </img>
@@ -743,7 +739,7 @@
 
         <p>
           <label>
-            <input type="radio" name="noticed_real_stimulus_last_trial" value="yes" required>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="right" required>
             Ja, echte strepen naar RECHTS:
           </label>
           <img src='imgs/gabor_right_sand.png'; width=75; style="vertical-align: middle"> </img>
@@ -751,7 +747,7 @@
 
         <p>
           <label>
-            <input type="radio" name="noticed_real_stimulus_last_trial" value="no" required>
+            <input type="radio" name="noticed_real_stimulus_last_trial" value="none" required>
             Nee, GEEN echte strepen.
           </label>
         </p>
@@ -1271,6 +1267,8 @@
 
 //TIMELINE 
   const timeline = [preload, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
+   
+ 
 
   for (let t = 0; t < total_vividness_trials; t++) {
     const trial_index = t + 1;
@@ -1304,6 +1302,7 @@
   }
 
   timeline.push(awareness_check);
+  
 
   timeline.push(intro_part_2);
   timeline.push(example_left_screen);

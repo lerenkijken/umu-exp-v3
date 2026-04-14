@@ -34,7 +34,8 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 1;
-  color: #333333;
+  color: #ffffffa1;
+  text-shadow: 0.2em 0.2em 0.02em #000000;
   text-align: center;
   pointer-events: none;
   text-shadow:none ;
