@@ -13,6 +13,7 @@
   <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-canvas-button-response@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.1.0"></script>
 
   <link href="https://unpkg.com/jspsych@8.2.2/css/jspsych.css" rel="stylesheet" type="text/css" />
   <link href="umu_exp_style.css" rel="stylesheet" type="text/css" />
@@ -1019,13 +1020,22 @@
       }
     };
   }
+
+    const enter_fullscreen = {
+    type: jsPsychFullscreen,
+    fullscreen_mode: true,
+    delay_after:0
+  }
+
   const welcome_screen = {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: `<h1>Welkom!</h1> `+
+    type: jsPsychFullscreen,
+    fullscreen_mode: true,
+    delay_after:0,
+    message: `<h1>Welkom!</h1> `+
         `<h2>Leuk dat je mee wilt doen.</h2>`+
       `<h2>De zebra's wachten al op je!</h2>`+
-    `<h3> Klik hier op om te beginnen.</h3>`,
-    choices: ['Begin'],
+    `<h3>Klik hier op om te beginnen.</h3>`,
+    button_label: 'Begin',
     on_start: ()=>{
       let el = document.getElementsByClassName('jspsych-content-wrapper')[0];
       el.style.backgroundImage = `url("imgs/sandstorm_intro.png")`;
@@ -1258,7 +1268,8 @@
 
 
 
-//TIMELINE
+
+//TIMELINE 
   const timeline = [preload, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
 
   for (let t = 0; t < total_vividness_trials; t++) {
