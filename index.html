@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Zebra in de zandstorm</title>
+  <title>Zandstorm</title>
 
   <script src="https://unpkg.com/jspsych@8.2.2"></script>
   <script src="https://unpkg.com/fabric@7.1.0/dist/index.min.js"></script>
@@ -14,6 +14,7 @@
   <script src="https://unpkg.com/@jspsych/plugin-canvas-button-response@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.1.0"></script>
 
   <link href="https://unpkg.com/jspsych@8.2.2/css/jspsych.css" rel="stylesheet" type="text/css" />
   <link href="umu_exp_style.css" rel="stylesheet" type="text/css" />
@@ -22,6 +23,7 @@
 <body></body>
 
 <script>
+
 // instellingen
 
 
@@ -154,14 +156,14 @@
 
 
   const jsPsych = initJsPsych({
-    on_finish: () => {
-      jsPsych.data.get().localSave('csv', filename);
-    }
+
   });
 
 
   const subject_id = jsPsych.randomization.randomID(12);
   const filename = `${subject_id}.csv`;
+
+  
 
   // deel 2 constants
   const vividness_single_frame_duration = 100;
@@ -186,6 +188,7 @@
 
   const target_opacity = 0.15;
 
+  const break_every_n_trials = 10
 
 
   jsPsych.data.addProperties({
@@ -193,12 +196,14 @@
     filename: filename,
     experiment: "zebra_in_zandstorm_gecombineerd",
     vividness_hidden_stimulus_opacity: hidden_stimulus_opacity,
-    main_task_duration_ms: 180000,
+    main_task_duration_ms: total_task_duration,
     main_task_stimulus_opacity: target_opacity,
     vividness_imagery_condition: vividness_imagery_condition,
     hidden_stimulus_congruency: hidden_stimulus_congruency,
-
   });
+
+  // add url variables
+  jsPsych.data.addProperties( jsPsych.data.urlVariables() )
 
 
   const canvas_size = [400, 400];
@@ -273,6 +278,8 @@
     }
   };
 
+
+
   // =====================================================
   // HULPFUNCTIES VOOR UITLEG
   // =====================================================
@@ -318,6 +325,8 @@
   // =====================================================
   // DEMOGRAFIE
   // =====================================================
+
+
   const demographics = {
     type: jsPsychSurveyHtmlForm,
     preamble: '<h2>Eerst twee korte vragen</h2>',
@@ -360,10 +369,7 @@
         <h2>Welkom bij het zebra-spel</h2>
         ${zebraImageHTML(vividness_imagery_condition, 280)}
         <p>
-          Dit is zebra <strong>${zebraName(vividness_imagery_condition)}</strong>.
-        </p>
-        <p>
-          De strepen van ${zebraName(vividness_imagery_condition)} lopen naar <strong>${zebraLabel(vividness_imagery_condition)}</strong>.
+          Dit is zebra <strong>${zebraName(vividness_imagery_condition)}</strong>. De strepen van ${zebraName(vividness_imagery_condition)} lopen naar <strong>${zebraLabel(vividness_imagery_condition)}</strong>.
         </p>
       </div>
     `,
@@ -680,7 +686,7 @@
           max-width:1100px;
           margin:20px auto 0 auto;
         ">`
-        let verbal_labels = ['Helemaal niks', 'Klein beetje', 'Best goed', 'Heel goed', 'Super goed']
+        let verbal_labels = ['Helemaal niet', 'Klein beetje', 'Wel oké', 'Best goed', 'Super goed']
 
         for (let i =0; i < 5; i++) {
           let img_div = `<div style="position:relative; width:140px; height:140px; margin-top:8px; border:6px solid #000000; border-radius:73px; overflow:hidden; background-image:url('imgs/noise_sandstorm.png'); background-size:cover;">
@@ -724,7 +730,7 @@
     preamble: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
         <h2><strong>Nog één vraag!</strong></h2>
-        <p>Waren er in het laatste rondje echt strepen te zien?</p>
+        <p>Waren er in het <strong>allerlaatste</strong> rondje echt strepen te zien?</p>
       </div>
     `,
     html: `
@@ -732,7 +738,7 @@
         <p>
           <label>
             <input type="radio" name="noticed_real_stimulus_last_trial" value="left" required>
-            Ja, echte strepen naar LINKS:
+            Ja, er waren echte strepen naar LINKS:
           </label>
          <img src='imgs/gabor_left_sand.png'; width=75; style="vertical-align: middle"> </img>
         </p> 
@@ -740,7 +746,7 @@
         <p>
           <label>
             <input type="radio" name="noticed_real_stimulus_last_trial" value="right" required>
-            Ja, echte strepen naar RECHTS:
+            Ja, er waren echte strepen naar RECHTS:
           </label>
           <img src='imgs/gabor_right_sand.png'; width=75; style="vertical-align: middle"> </img>
         </p>
@@ -748,7 +754,7 @@
         <p>
           <label>
             <input type="radio" name="noticed_real_stimulus_last_trial" value="none" required>
-            Nee, GEEN echte strepen.
+            Nee, er waren GEEN echte strepen.
           </label>
         </p>
       </div>
@@ -808,19 +814,18 @@
       type: jsPsychHtmlButtonResponse,
       stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <h2><strong>Nu begint het tweede deel!</strong></h2>
+        <h2><strong>Nu begint het zoeken in de zandstrom!</strong></h2>
 
           <div style="margin:10px 0 15px 0;">
-            ${zebraImageHTML(imagery_condition, 230)}
+            ${zebraImageHTML(imagery_condition, 180)}
           </div>
 
           <p>
             Blijf tijdens alle volgende rondes de <strong>strepen naar ${zebraLabel(imagery_condition)} inbeelden</strong>.
           </p>
 
-          <p>
-            Vanaf nu zul je soms <strong>Lieke</strong> zien, soms <strong>Rick</strong> en soms <strong>GEEN zebra.</strong>.
-          </p>
+          <p>Je zal soms <strong>Lieke</strong> zien, soms <strong>Rick</strong> en soms <strong>GEEN zebra</strong>.</p>
+          
 
           <p>
             Jij blijft dus de strepen inbeelden, maar kijkt ook goed óf er een zebra is en wélke dan.
@@ -988,23 +993,27 @@
   function make_main_task_reminder(imagery_condition) {
     return {
       type: jsPsychHtmlButtonResponse,
-      stimulus: `
+      stimulus: ()=>{
+        let time_elapsed = main_task_start_time ? Math.round(performance.now() - main_task_start_time) : 10*1000
+
+        
+        return `
         <div style="max-width:900px; margin:0 auto; text-align:center;">
-          <h3<strong>Even een korte herinnering</strong></h3>
+          <h3>Goed bezig! Je bent al zo ver:</h3>
+          <progress id="time_progress_bar" value="${time_elapsed}" max="${total_task_duration}"> </progress>
+
           <p>
-            Blijf steeds de <strong>strepen</strong> van ${zebraName(imagery_condition)} inbeelden.
+            Blijf steeds goed kijken welke zebra je <strong>echt</strong> ziet in de zandstorm.
           </p>
           <p>
-            Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in de zandstorm.
+            Blijf ook steeds de <strong>strepen van ${zebraName(imagery_condition)}</strong> inbeelden zoals hier.
           </p>
+          
           <div style="margin:18px 0;">
-            <img src="${getGaborFile(imagery_condition)}" style="width:220px; height:220px;" alt="strepen van ${zebraName(imagery_condition)}">
+            <img src="${getGaborFile(imagery_condition)}" style="width:180px; height:180px;" alt="strepen van ${zebraName(imagery_condition)}">
           </div>
-          <p>
-            Dus: blijf deze strepen inbeelden, en antwoord over de zebra die je echt zag.
-          </p>
         </div>
-      `,
+      `},
       choices: ['Verder'],
       save_trial_parameters: {
         stimulus: false,
@@ -1017,11 +1026,27 @@
     };
   }
 
-    const enter_fullscreen = {
-    type: jsPsychFullscreen,
-    fullscreen_mode: true,
-    delay_after:0
+  const password_check_inner_node = {
+    type: jsPsychSurveyHtmlForm,
+    preamble: '<h3>Typ hier het woord dat de onderzoeker<br>je verteld heeft om te beginnen:</h3>',
+    html:  `<h3><input type="text" id="resp-box" name="response" size="30" ></h3>`,
+    autofocus: 'resp-box',
+    button_label: "Begin"
   }
+
+  const password_check = {
+    timeline: [password_check_inner_node],
+    loop_function: function(data){
+      let resp = jsPsych.data.get().last().values()[0].response.response
+        if(resp.toLowerCase() === 'zebra' ){
+            return false;
+        } else {
+            return true;
+        }
+    }
+  }
+
+
 
   const welcome_screen = {
     type: jsPsychFullscreen,
@@ -1030,7 +1055,7 @@
     message: `<h1>Welkom!</h1> `+
         `<h2>Leuk dat je mee wilt doen.</h2>`+
       `<h2>De zebra's wachten al op je!</h2>`+
-    `<h3>Klik hier op om te beginnen.</h3>`,
+    `<h3>Klik hieronder op om te beginnen.</h3>`,
     button_label: 'Begin',
     on_start: ()=>{
       let el = document.getElementsByClassName('jspsych-content-wrapper')[0];
@@ -1062,7 +1087,7 @@
           Maar nu kan er soms ook <strong>echt een zebra</strong> in de zandstorm staan: ${zebraName(global_imagery_condition)} of ${zebraName(oppositeOrientation(global_imagery_condition))}.
         </p>
         <p>
-          Laten we kort 2 voorbeelden doornemen.
+          Laten we kort 3 voorbeelden doornemen.
         </p>
       </div>
     `,
@@ -1075,13 +1100,13 @@
   };
 
   const example_left_screen = {
-    type: jsPsychHtmlButtonResponse,
+    type: jsPsychHtmlKeyboardResponse,
     stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Voorbeeld 1</strong></p>
+        <p style="font-size:24px;"><strong>Voorbeeld 1/3</strong></p>
 
         <p>
-          Als je een zebra Lieke ziet met strepen naar <strong>LINKS</strong>, druk je op de
+          Als je <strong>zebra Lieke</strong> ziet met strepen naar <strong>LINKS</strong>, druk je op de
           <strong>linkerpijl</strong>.
         </p>
 
@@ -1097,9 +1122,12 @@
         <p>
           Dus, strepen zo = <strong>Linkerpijl</strong>
         </p>
+          <h3>
+          Druk nu op de pijltjestoets LINKS om door te gaan!
+        </h3>
       </div>
     `,
-    choices: ['Verder'],
+    choices: ['ArrowLeft'],
     save_trial_parameters: {
       stimulus: false,
       choices: false
@@ -1108,13 +1136,13 @@
   };
 
   const example_right_screen = {
-    type: jsPsychHtmlButtonResponse,
+    type: jsPsychHtmlKeyboardResponse,
     stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Voorbeeld 2</strong></p>
+        <p style="font-size:24px;"><strong>Voorbeeld 2/3</strong></p>
 
         <p>
-          Als je een zebra Rick ziet met strepen naar <strong>RECHTS</strong>, druk je op de
+          Als je <strong>zebra Rick</strong> ziet met strepen naar <strong>RECHTS</strong>, druk je op de
           <strong>rechterpijl</strong>.
         </p>
 
@@ -1130,9 +1158,12 @@
         <p>
           Dus, strepen zo = <strong>rechterpijl</strong>
         </p>
+          <h3>
+          Druk nu op de pijltjestoets RECHTS om door te gaan!
+        </h3>
       </div>
     `,
-    choices: ['Verder'],
+    choices: ['ArrowRight'],
     save_trial_parameters: {
       stimulus: false,
       choices: false
@@ -1140,21 +1171,45 @@
     data: { phase: 'orientation_example_right' }
   };
 
+  const example_absent_screen = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <h2><strong>Voorbeeld 3/3</strong></h2>
+
+        <p>
+          Als je <strong>GEEN zebra</strong> ziet, druk je op de
+          <strong>pijltjestoets OMLAAG</strong> (omhoog mag ook).
+        </p>
+        <p></p>
+          <h3>
+          Druk nu op de pijltjestoets OMLAAG om door te gaan!
+        </h3><p>(of omhoog)</p>
+      </div>
+    `,
+    choices: ['ArrowUp', 'ArrowDown'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'orientation_example_left' }
+  };
+
   const response_instruction = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Wat is nu jouw taak?</strong></p>
+        <h2>Wat is nu jouw taak?</h2>
 
         <p>Blijf de strepen van <strong>${zebraName(global_imagery_condition)}</strong> inbeelden.</p>
         <p>Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in zandstorm.</p>
-        <p><strong>Linkerpijl</strong> = strepen naar LINKS</p>
-        <p><strong>Rechterpijl</strong> = strepen naar RECHTS</p>
-        <p><strong>Pijl omhoog of omlaag</strong> = GEEN zebra</p>
+        <p><strong> ← Pijltjestoets Links</strong> = strepen naar LINKS</p>
+        <p><strong> → Pijltjestoets Rechts</strong> = strepen naar RECHTS</p>
+        <p><strong>↑ ↓ Pijltjestoets Omlaag/omhoog</strong> = GEEN zebra</p>
 
-        <p style="font-size:24px; margin-top:18px;">
+        <h3 margin-top:18px;">
           Druk zo snel mogelijk maar probeer geen fouten te maken!
-        </p>
+        </h3>
       </div>
     `,
     choices: ['Verder'],
@@ -1169,11 +1224,12 @@
     type: jsPsychHtmlButtonResponse,
     stimulus: `
       <div style="max-width:800px; margin:0 auto; text-align:center;">
-        <p style="font-size:24px;"><strong>Klaar?</strong></p>
-        <p>Nu begint het echte spel. Success!</p>
+        <h2>De zandstorm wordt heviger! De strepen zullen nu nog moeilijker te zien zijn.</h2>
+        <h2>Ben jij klaar voor het zoeken?</h2>
+        <h3>Success!</h3>
       </div>
     `,
-    choices: ['Start het spel'],
+    choices: [`Zoek de zebra's!`],
     save_trial_parameters: {
       stimulus: false,
       choices: false
@@ -1185,34 +1241,29 @@
     }
   };
 
-  // const mark_main_task_start = {
-  //   type: jsPsychCallFunction,
-  //   func: function() {
-  //     main_task_start_time = performance.now();
-  //     running_trial_number = 0;
-  //   },
-  //   save_trial_parameters: {
-  //     func: false
-  //   },
-  //   data: { phase: 'mark_main_task_start' }
-  // };
 
   const end_screen = {
     type: jsPsychHtmlButtonResponse,
     stimulus: `
-      <div style="max-width:800px; margin:0 auto; text-align:center;">
-        <p style="font-size:26px;"><strong>Goed gedaan</strong></p>
-        <p>Je bent klaar.</p>
-        <p>Je antwoorden worden nu opgeslagen.</p>
-      </div>
+        <h2>Goed gedaan!<h2>
+        <h2>Je bent klaar.<h2>
+        <h3>Je antwoorden zijn nu opgeslagen.</h3>
+        <p>Klik nu hieronder om het spel klaar te zetten voor de volgende bezoeker!</p>
     `,
-    choices: ['Afronden en oplsaan'],
+    choices: ['Afsluiten'],
     save_trial_parameters: {
       stimulus: false,
       choices: false
     },
-    data: { phase: 'end_screen' }
+    data: { phase: 'end_screen' },
+    on_start: () => {
+      jsPsych.data.get().localSave('csv', filename);
+    },
+    on_finish: () => {
+      window.location.reload();
+    }
   };
+
 
   const timed_main_task = {
     timeline: [
@@ -1233,7 +1284,7 @@
       {
         timeline: [make_main_task_reminder(global_imagery_condition)],
         conditional_function: function() {
-          return running_trial_number > 1 && (running_trial_number - 1) % 10 === 0;
+          return running_trial_number > 1 && (running_trial_number - 1) % break_every_n_trials === 0;
         }
       },
       {
@@ -1266,8 +1317,9 @@
 
 
 //TIMELINE 
-  const timeline = [preload, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
-   
+  const timeline = [preload, password_check, welcome_screen,demographics, zebra_intro, sandstorm_intro, stripes_intro];
+  // 
+
  
 
   for (let t = 0; t < total_vividness_trials; t++) {
@@ -1302,17 +1354,20 @@
   }
 
   timeline.push(awareness_check);
-  
 
-  timeline.push(intro_part_2);
-  timeline.push(example_left_screen);
-  timeline.push(example_right_screen);
+  timeline.push(intro_part_2, example_left_screen, example_right_screen, example_absent_screen);
+
   timeline.push(response_instruction);
   timeline.push(make_global_imagery_instruction(global_imagery_condition));
   timeline.push(start_main);
   timeline.push(timed_main_task);
   timeline.push(end_screen);
 
+
+
   jsPsych.run(timeline);
+
+
+
 </script>
 </html>

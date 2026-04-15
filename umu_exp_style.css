@@ -1,3 +1,7 @@
+
+input[type='text'] { font-size: 40px; }
+
+
 .jspsych-display-element {
     background-color: #7a4e17;
 }
@@ -25,7 +29,7 @@
     border-radius: 16px;
     color: white;
     background-color: #2b00c8d0;
-    padding: 0.6em 1.2em;
+    padding: 0.2em 1.2em;
     /*font-family: Malington;*/
 }
 .jspsych-space-hint {
@@ -55,4 +59,24 @@
   color: #aaaaaa00;
   border-color: #d13d3d00;
   cursor:auto;
+}
+
+progress {
+  border-radius: 4px; 
+  width: 60%;
+  height: 20px;
+  border-width: 6px;
+  border-color: #000000;
+  /* margin-left: -11.5%; */
+  box-shadow:  0.2em 0.2em 0.08em #222222;
+}
+progress::-webkit-progress-bar {
+  background-color: rgba(233, 152, 60, 0.651);
+  border-radius: 7px;
+
+}
+progress::-webkit-progress-value {
+  background-color: rgba(255, 255, 255, 0.678);
+  border-radius: 4px;
+  /* box-shadow: 1px 1px 5px 3px rgba( 255, 0, 0, 0.8 ); */
 }
