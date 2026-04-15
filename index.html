@@ -187,6 +187,7 @@
   let current_external_condition = null;
 
   const target_opacity = 0.15;
+  let opacity_boost = 0
 
   const break_every_n_trials = 10
 
@@ -1275,22 +1276,33 @@
         save_trial_parameters: { func: false },
         data: { phase: 'increment_trial_counter' }
       },
+
       {
         timeline: [make_trial_divider()],
         conditional_function: function() {
           return running_trial_number > 1;
         }
       },
+
       {
         timeline: [make_main_task_reminder(global_imagery_condition)],
         conditional_function: function() {
           return running_trial_number > 1 && (running_trial_number - 1) % break_every_n_trials === 0;
         }
       },
+
       {
         type: jsPsychCallFunction,
         func: function() {
           current_external_condition = sample_external_condition();
+          if (running_trial_number > 1 && (running_trial_number - 1) % 9 === 0) {
+            current_external_condition = running_trial_number%2==0 ?  'left' : 'right'
+            opacity_boost = 0.5
+          } else {
+            opacity_boost = 0
+          }
+
+
         },
         save_trial_parameters: {  func: false   },
         data: function() {
@@ -1301,12 +1313,15 @@
           };
         }
       },
+
       make_dynamic_trial(
         global_imagery_condition,
-        target_opacity,
+        target_opacity + opacity_boost,
         dynamic_noise_duration
       )
+
     ],
+
     loop_function: function() {
       const elapsed = performance.now() - main_task_start_time;
       return elapsed < total_task_duration;
@@ -1344,8 +1359,7 @@
         show_hidden_stimulus = false
         trial_orientation = vividness_imagery_condition;
     }
-    console.log('show_hidden_stimulus', show_hidden_stimulus)
-    console.log('orientation', trial_orientation)
+
 
 
     timeline.push(make_vividness_instruction_trial(trial_index, vividness_imagery_condition));
