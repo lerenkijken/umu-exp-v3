@@ -189,7 +189,8 @@
   let running_score = 0
 
   const target_opacity = 0.15;
-  let opacity_boost = 0
+  let gabor_opacity;
+  let opacity_boost = 0.4
 
   const break_every_n_trials = 10
 
@@ -206,7 +207,7 @@
   });
 
   // add url variables
-  let exp_version = 'version - 0.2.0 - (20-04-2026 12.52)'
+  let exp_version = 'version - 0.2.1 - (20-04-2026 13.35)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -859,21 +860,23 @@
     };
   }
 
-  function make_dynamic_trial(imagery_condition, gabor_opacity, noise_duration = null) {
+  function make_dynamic_trial(imagery_condition, noise_duration = null) {
     let interval_ID;
     let timestamp;
     let delta_times = [];
     let gabor_fabric_img;
+
     let img_sand_filter = new fabric.Rect({
         fill:'#A66B25',
         opacity:0.7,
     })
+    
 
 
     return {
       type: jsPsychCanvasKeyboardResponse,
       canvas_size: canvas_size,
-      trial_duration: () => (running_trial_number<3 ? null :  noise_duration),
+      trial_duration: () => (running_trial_number<3 ? null :  noise_duration), // if trial number is 1 or 2 give unlimited time for response
       save_trial_parameters: {
         stimulus: false,
         choices: false,
@@ -881,10 +884,24 @@
       },
       stimulus: function() {
         const external_condition = current_external_condition;
+        
+
+        // boost opacity every 9 trials
+        let n_left_trials = jsPsych.data.get().filter({phase: "main_trial", external_condition :'left'}).count()
+        let n_right_trials = jsPsych.data.get().filter({phase: "main_trial", external_condition :'right'}).count()
+        let n_present_trials = n_left_trials + n_right_trials + 1
+        let if_boost_opacity = ((n_present_trials % 13) == 0 )
+
+        if (external_condition !== 'absent' && if_boost_opacity){
+          gabor_opacity =  target_opacity + opacity_boost 
+        } else {
+          gabor_opacity =  target_opacity
+        }
 
 
         if (external_condition === 'left') {
-          gabor_fabric_img = makeFabricGabor(gabor_left_img, 1);
+          gabor_fabric_img = makeFabricGabor(gabor_left_img, 1);         
+
         } else if (external_condition === 'right') {
           gabor_fabric_img = makeFabricGabor(gabor_right_img, 1);;
         } else {
@@ -984,7 +1001,7 @@
         data.elapsed_main_task_time_ms = Math.round(performance.now() - main_task_start_time);
 
         running_score += (running_trial_number>2 ?  get_score(data.correct, data.rt) : 0)
-        console.log(data.gabor_opacity)
+        console.log(data)
       }
     };
   }
@@ -1025,7 +1042,7 @@
             Blijf steeds goed kijken welke zebra je <strong>echt</strong> ziet in de zandstorm.
           </p>
           <p>
-            Blijf ook steeds de <strong>strepen van ${zebraName(imagery_condition)}</strong> inbeelden zoals hier.
+            Blijf ook steeds de <strong>strepen van ${zebraName(imagery_condition)} inbeelden</strong> zoals hier.
           </p>
           
           <div style="margin:18px 0;">
@@ -1340,14 +1357,6 @@
         type: jsPsychCallFunction,
         func: function() {
           current_external_condition = sample_external_condition();
-          if (running_trial_number > 1 && (running_trial_number - 1) % 9 === 0) {
-            current_external_condition = running_trial_number%2==0 ?  'left' : 'right'
-            opacity_boost = 0.5
-          } else {
-            opacity_boost = 0
-          }
-
-
         },
         save_trial_parameters: {  func: false   },
         data: function() {
@@ -1363,8 +1372,7 @@
 
       make_dynamic_trial(
         global_imagery_condition,
-        target_opacity + opacity_boost,
-        dynamic_noise_duration /// if trial number is 1 or 2 give unlimited time for response
+        dynamic_noise_duration 
       ),
 
 
