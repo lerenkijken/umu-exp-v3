@@ -186,6 +186,8 @@
   let running_trial_number = 0;
   let current_external_condition = null;
 
+  let running_score = 0
+
   const target_opacity = 0.15;
   let opacity_boost = 0
 
@@ -204,7 +206,17 @@
   });
 
   // add url variables
-  jsPsych.data.addProperties( jsPsych.data.urlVariables() )
+  let exp_version = 'version - 0.2.0 - (20-04-2026 12.52)'
+  
+  const url_vars = jsPsych.data.urlVariables()
+  
+  url_vars['exp_version'] = exp_version
+
+  const exp_start_datetime = Date.now()
+  url_vars['exp_start_datetime'] = Date(exp_start_datetime)
+  url_vars['exp_start_UTCms'] = exp_start_datetime
+
+  jsPsych.data.addProperties( url_vars )
 
 
   const canvas_size = [400, 400];
@@ -657,7 +669,9 @@
         let q_html =  (trial_index > 2) ? '' : `<p>Kies het plaatje dat er het meest op lijkt.</p>`
         return `
         <div style="text-align:center; max-width:1000px; margin:0 auto;">
-          <h2>Hoe goed "zag" je de strepen in je inbeelding?</h2>`+
+          <h2>Hoe goed "zag" je de strepen in je <i>INBEELDING?</i></h2>
+          <p>Anders gevraagd: Hoe goed lukte het "voor-je-zien" van de strepen in je hoofd?</p>`+
+          
           q_html + 
         `</div>
       `},
@@ -859,7 +873,7 @@
     return {
       type: jsPsychCanvasKeyboardResponse,
       canvas_size: canvas_size,
-      trial_duration: noise_duration,
+      trial_duration: () => (running_trial_number<3 ? null :  noise_duration),
       save_trial_parameters: {
         stimulus: false,
         choices: false,
@@ -867,7 +881,6 @@
       },
       stimulus: function() {
         const external_condition = current_external_condition;
-
 
 
         if (external_condition === 'left') {
@@ -948,6 +961,7 @@
       choices: ['ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'],
       response_ends_trial: true,
       data: function() {
+        
         return {
           phase: 'main_trial',
           trial_number: running_trial_number,
@@ -968,6 +982,9 @@
         data.response_label = key_to_response(data.response);
         data.correct = data.response_label === data.correct_response ? 1 : 0;
         data.elapsed_main_task_time_ms = Math.round(performance.now() - main_task_start_time);
+
+        running_score += (running_trial_number>2 ?  get_score(data.correct, data.rt) : 0)
+        console.log(data.gabor_opacity)
       }
     };
   }
@@ -1002,6 +1019,7 @@
         <div style="max-width:900px; margin:0 auto; text-align:center;">
           <h3>Goed bezig! Je bent al zo ver:</h3>
           <progress id="time_progress_bar" value="${time_elapsed}" max="${total_task_duration}"> </progress>
+          <h3>En dit is je score:</h3> <h2>${running_score}</h2>
 
           <p>
             Blijf steeds goed kijken welke zebra je <strong>echt</strong> ziet in de zandstorm.
@@ -1056,7 +1074,7 @@
     message: `<h1>Welkom!</h1> `+
         `<h2>Leuk dat je mee wilt doen.</h2>`+
       `<h2>De zebra's wachten al op je!</h2>`+
-    `<h3>Klik hieronder op om te beginnen.</h3>`,
+    `<h3>Klik hieronder om te beginnen.</h3>`,
     button_label: 'Begin',
     on_start: ()=>{
       let el = document.getElementsByClassName('jspsych-content-wrapper')[0];
@@ -1203,7 +1221,7 @@
         <h2>Wat is nu jouw taak?</h2>
 
         <p>Blijf de strepen van <strong>${zebraName(global_imagery_condition)}</strong> inbeelden.</p>
-        <p>Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in zandstorm.</p>
+        <p>Kijk tegelijk goed welke zebra je <strong>echt</strong> ziet in de zandstorm.</p>
         <p><strong> ← Pijltjestoets Links</strong> = strepen naar LINKS</p>
         <p><strong> → Pijltjestoets Rechts</strong> = strepen naar RECHTS</p>
         <p><strong>↑ ↓ Pijltjestoets Omlaag/omhoog</strong> = GEEN zebra</p>
@@ -1245,9 +1263,12 @@
 
   const end_screen = {
     type: jsPsychHtmlButtonResponse,
-    stimulus: `
-        <h2>Goed gedaan!<h2>
-        <h2>Je bent klaar.<h2>
+    stimulus: () => `
+        <h2>Goed gedaan!</h2>
+        <h3>Je bent klaar.</h3>
+          <h3>Dit is je eindscore:</h3>
+            <h1>${running_score}</h1>
+        
         <h3>Je antwoorden zijn nu opgeslagen.</h3>
         <p>Klik nu hieronder om het spel klaar te zetten voor de volgende bezoeker!</p>
     `,
@@ -1260,10 +1281,34 @@
     on_start: () => {
       jsPsych.data.get().localSave('csv', filename);
     },
-    on_finish: () => {
+    on_finish: (data) => {
+      data.score = running_score
       window.location.reload();
     }
   };
+
+  let info_speed_up_trial = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `<h3>In deze eerste 2 rondes had je veel tijd om te reageren.<br>Maar vanaf nu moet je sneller zijn!</h3><h3>Als je niet snel genoeg bent, krijg je een melding!</h3>`,
+    choices: ['Zoek verder!'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'info_speed_up_trial' },
+  };
+
+  let info_too_slow = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `<h3>Oei! Je was net niet snel genoeg!</h3><h3>Probeer nog sneller op een knop te drukken!</h3>`,
+    choices: ['Zoek verder!'],
+    save_trial_parameters: {
+      stimulus: false,
+      choices: false
+    },
+    data: { phase: 'info_too_slow' },
+  };
+
 
 
   const timed_main_task = {
@@ -1314,11 +1359,33 @@
         }
       },
 
+
+
       make_dynamic_trial(
         global_imagery_condition,
         target_opacity + opacity_boost,
-        dynamic_noise_duration
-      )
+        dynamic_noise_duration /// if trial number is 1 or 2 give unlimited time for response
+      ),
+
+
+
+      
+      {
+        timeline: [info_speed_up_trial],
+        conditional_function: function() {
+          return running_trial_number == 2;
+        }
+      },
+
+      {
+        timeline: [info_too_slow],
+        conditional_function: function() {
+          let last_main_trial = jsPsych.data.get().filter({phase: "main_trial"}).last().values()[0]
+
+          return running_trial_number > 2 && (last_main_trial.response_label == 'no_response');
+        }
+      },
+
 
     ],
 
@@ -1332,8 +1399,8 @@
 
 
 //TIMELINE 
-  const timeline = [preload, password_check, welcome_screen,demographics, zebra_intro, sandstorm_intro, stripes_intro];
-  // 
+  const timeline = [preload , password_check, welcome_screen,demographics, zebra_intro, sandstorm_intro, stripes_intro];
+
 
  
 
@@ -1381,7 +1448,12 @@
 
   jsPsych.run(timeline);
 
+  // utility functions
 
+  function get_score(accuracy, rt, allowed_time=dynamic_noise_duration) {
+    
+    return Math.round(accuracy * (allowed_time - rt) * 0.1)
+  }
 
 </script>
 </html>
