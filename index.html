@@ -15,6 +15,8 @@
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.1.0"></script>
 
   <link href="https://unpkg.com/jspsych@8.2.2/css/jspsych.css" rel="stylesheet" type="text/css" />
   <link href="umu_exp_style.css" rel="stylesheet" type="text/css" />
@@ -34,6 +36,8 @@
 ///
 ///
 ///////////////////////////////////////////////
+
+/////////////////
 
   function getContinueButton() {
     return document.querySelector(
@@ -140,9 +144,22 @@
   }
 
 
+///////////////////////////////////////////////
+///  Add halfway save functionality
 
+// press Crtl + Shift + s to save current data and reload
 
+function save_incomplete_data(e){
+  let k = e.key.toLowerCase()
+  if (k == 'q' && e.ctrlKey) {
+    let _filename = 'MANUAL_SAVE_' + Date.now() + '_' + filename
 
+    jsPsych.data.get().localSave('csv',  _filename);    
+    jsPsychPipe.saveData("lV0x0RgVuYwK", _filename, jsPsych.data.get().csv())
+
+  }
+}
+document.addEventListener("keydown", save_incomplete_data)
 
 
 
@@ -180,7 +197,7 @@
   let dynamic_noise_duration = 3000;
   let single_frame_duration = 100;
   let inter_trial_interval = 800;
-  const total_task_duration = 3 *(60_000) // 3 minutes   ;
+  const total_task_duration = 3.2 *(60_000) // 3 minutes   ; 
 
   let main_task_start_time = null;
   let running_trial_number = 0;
@@ -207,7 +224,7 @@
   });
 
   // add url variables
-  let exp_version = 'version - 0.2.1 - (20-04-2026 13.35)'
+  let exp_version = 'version - 0.3.0 - (21-04-2026 11:15)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -1279,30 +1296,46 @@
 
 
   const end_screen = {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: () => `
+    type: jsPsychSurveyText,
+    preamble: () => `
         <h2>Goed gedaan!</h2>
         <h3>Je bent klaar.</h3>
           <h3>Dit is je eindscore:</h3>
             <h1>${running_score}</h1>
         
-        <h3>Je antwoorden zijn nu opgeslagen.</h3>
-        <p>Klik nu hieronder om het spel klaar te zetten voor de volgende bezoeker!</p>
+        
     `,
-    choices: ['Afsluiten'],
-    save_trial_parameters: {
-      stimulus: false,
-      choices: false
-    },
+    questions: [{prompt:
+      `<p>Als je wil, kun je hier nog iets meegeven aan de onderzoekers!</p>
+      <p>Klik daarna op de knop eronder om jouw antwoorden op te slaan!</p>`,
+      rows:3, placeholder:'Vond je het leuk om mee te doen? Heb je opmerkingen of ideeën?',
+    }],
+    button_label: ['Oplsaan en afsluiten'],
     data: { phase: 'end_screen' },
-    on_start: () => {
-      jsPsych.data.get().localSave('csv', filename);
-    },
     on_finish: (data) => {
       data.score = running_score
-      window.location.reload();
+      jsPsych.data.get().localSave('csv', filename);
     }
   };
+
+  const save_data_pipe = {
+      type: jsPsychPipe,
+      action: "save",
+      experiment_id: "lV0x0RgVuYwK",
+      filename: filename,
+      data_string: ()=>jsPsych.data.get().csv(),
+      wait_message: `<h3>Dankjewel!</h3><h3>We slaan nu je antwoorden op.</h3><h3>Je hoeft verder niets meer te doen.</h3><p>Als het opslaan gelukt is, wordt het spel automatisch klaargezet voor de volgende!</p>`, 
+      on_finish: function() {
+        window.location.reload()
+      }
+  };
+
+
+
+
+  
+
+
 
   let info_speed_up_trial = {
     type: jsPsychHtmlButtonResponse,
@@ -1407,7 +1440,7 @@
 
 
 //TIMELINE 
-  const timeline = [preload , password_check, welcome_screen,demographics, zebra_intro, sandstorm_intro, stripes_intro];
+  const timeline = [preload , password_check, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
 
 
  
@@ -1450,7 +1483,7 @@
   timeline.push(make_global_imagery_instruction(global_imagery_condition));
   timeline.push(start_main);
   timeline.push(timed_main_task);
-  timeline.push(end_screen);
+  timeline.push(end_screen, save_data_pipe);
 
 
 
@@ -1462,6 +1495,42 @@
     
     return Math.round(accuracy * (allowed_time - rt) * 0.1)
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+Version changes/updates log:
+
+v 0.2.0:
+  1.	Log start time and version.
+  2.	Part 2: 2 trials with more time + notification if too slow
+  3.	Add scoring system: show score at reminder trials and at the end.
+  4.  Typos
+
+v 0.2.1:
+  1. add sanity check trials: every 13th target-present trial show very visible gabor.
+
+v 0.3.0:  (21-04-2026 11:15)
+  1. add manual saving functionality (crtl + Q) if someone stops halfway
+  2. add text box to leave comments at the end of the exp
+  3. add saving functionality to save data directly to OSF using jsPsych data-pipe (also with manual saving).
+  4. duration of main trials set to 3.2 minutes (was initially 3 minutes), to account for practice trials.
+
+
+*/
 
 </script>
 </html>
