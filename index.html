@@ -155,7 +155,7 @@ function save_incomplete_data(e){
     let _filename = 'MANUAL_SAVE_' + Date.now() + '_' + filename
 
     jsPsych.data.get().localSave('csv',  _filename);    
-    jsPsychPipe.saveData("lV0x0RgVuYwK", _filename, jsPsych.data.get().csv())
+    jsPsychPipe.saveData("HEqS006hoIeG", _filename, jsPsych.data.get().csv())
 
   }
 }
@@ -1308,7 +1308,7 @@ document.addEventListener("keydown", save_incomplete_data)
     questions: [{prompt:
       `<p>Als je wil, kun je hier nog iets meegeven aan de onderzoekers!</p>
       <p>Klik daarna op de knop eronder om jouw antwoorden op te slaan!</p>`,
-      rows:3, placeholder:'Vond je het leuk om mee te doen? Heb je opmerkingen of ideeën?',
+      rows:3, placeholder:'Vond je het leuk om mee te doen? Heb je opmerkingen of ideeën? Typ het hier!',
     }],
     button_label: ['Oplsaan en afsluiten'],
     data: { phase: 'end_screen' },
@@ -1321,7 +1321,7 @@ document.addEventListener("keydown", save_incomplete_data)
   const save_data_pipe = {
       type: jsPsychPipe,
       action: "save",
-      experiment_id: "lV0x0RgVuYwK",
+      experiment_id: "HEqS006hoIeG",
       filename: filename,
       data_string: ()=>jsPsych.data.get().csv(),
       wait_message: `<h3>Dankjewel!</h3><h3>We slaan nu je antwoorden op.</h3><h3>Je hoeft verder niets meer te doen.</h3><p>Als het opslaan gelukt is, wordt het spel automatisch klaargezet voor de volgende!</p>`, 
@@ -1528,6 +1528,10 @@ v 0.3.0:  (21-04-2026 11:15)
   2. add text box to leave comments at the end of the exp
   3. add saving functionality to save data directly to OSF using jsPsych data-pipe (also with manual saving).
   4. duration of main trials set to 3.2 minutes (was initially 3 minutes), to account for practice trials.
+
+v 0.3.1:  (21-04-2026 11:45)
+  1. text changes 
+  2. changed target OSF saving folder to the LerenKijken OSF page
 
 
 */
