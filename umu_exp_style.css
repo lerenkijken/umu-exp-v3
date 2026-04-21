@@ -1,6 +1,12 @@
 
 input[type='text'] { font-size: 40px; }
 
+html, body {
+  overscroll-behavior: none;
+      -webkit-user-select: none; /* Safari */
+            user-select: none;
+}
+
 
 .jspsych-display-element {
     background-color: #7a4e17;

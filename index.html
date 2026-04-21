@@ -22,7 +22,7 @@
   <link href="umu_exp_style.css" rel="stylesheet" type="text/css" />
 
 </head>
-<body></body>
+<body oncontextmenu='return false;'></body>
 
 <script>
 
@@ -224,7 +224,7 @@ document.addEventListener("keydown", save_incomplete_data)
   });
 
   // add url variables
-  let exp_version = 'version - 0.3.1 - (21-04-2026 11:45)'
+  let exp_version = 'version - 0.3.2 - (21-04-2026 15:15)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -1532,6 +1532,10 @@ v 0.3.0:  (21-04-2026 11:15)
 v 0.3.1:  (21-04-2026 11:45)
   1. text changes 
   2. changed target OSF saving folder to the LerenKijken OSF page
+
+v 0.3.2:  (21-04-2026 15:15)
+  1. disable right click
+
 
 
 */
