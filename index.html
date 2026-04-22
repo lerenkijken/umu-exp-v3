@@ -193,6 +193,8 @@ document.addEventListener("keydown", save_incomplete_data)
   const vividness_imagery_condition = jsPsych.randomization.sampleWithoutReplacement(['right', 'left'], 1)[0];
   const hidden_stimulus_congruency = jsPsych.randomization.sampleWithoutReplacement(['congruent', 'incongruent', 'absent'], 1)[0];
 
+  const practice_gabors = jsPsych.randomization.shuffle(['right', 'left', 'absent'])
+
 
   let dynamic_noise_duration = 3000;
   let single_frame_duration = 100;
@@ -210,7 +212,7 @@ document.addEventListener("keydown", save_incomplete_data)
   let opacity_boost = 0.4
 
   const break_every_n_trials = 10
-
+  const n_practice_trials = 3
 
   jsPsych.data.addProperties({
     participantID: subject_id,
@@ -224,7 +226,7 @@ document.addEventListener("keydown", save_incomplete_data)
   });
 
   // add url variables
-  let exp_version = 'version - 0.4.0- (22-04-2026 12:15)'
+  let exp_version = 'version - 0.5.0- (22-04-2026 14:15)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -895,14 +897,14 @@ document.addEventListener("keydown", save_incomplete_data)
     return {
       type: jsPsychCanvasKeyboardResponse,
       canvas_size: canvas_size,
-      trial_duration: () => (running_trial_number<3 ? null :  noise_duration), // if trial number is 1 or 2 give unlimited time for response
+      trial_duration: () => (running_trial_number <= n_practice_trials ? null :  noise_duration), // if trial number is 1 or 2 give unlimited time for response
       save_trial_parameters: {
         stimulus: false,
         choices: false,
         canvas_size: false
       },
       prompt: () => {
-        if(running_trial_number<3) {
+        if(running_trial_number <= n_practice_trials ) {
            return `<img src="imgs/key_gabor_coupling.png" style="width:400px"></img>` 
        
         } else {
@@ -910,7 +912,15 @@ document.addEventListener("keydown", save_incomplete_data)
         }
       },
       stimulus: function() {
-        const external_condition = current_external_condition;
+
+        let external_condition;
+
+        // ensure first 3 practice trials incluce all options
+        if (running_trial_number <= n_practice_trials) {
+          external_condition = practice_gabors[running_trial_number-1]
+        } else {
+           external_condition  = current_external_condition; 
+        }
         
 
         // boost opacity every 9 trials
@@ -1294,8 +1304,8 @@ document.addEventListener("keydown", save_incomplete_data)
       <div style="max-width:800px; margin:0 auto; text-align:center;">
         <h2>De zandstorm wordt heviger! De strepen zullen nu nog moeilijker te zien zijn.</h2>
         <h2>Ben jij er klaar voor?</h2>
-        <h3>Je mag eerst 2 keer oefenen met zoeken, en dan gelijk door!</h3>
-        <h3>Success!</h3>
+        <h3>Je mag eerst een paar keer oefenen met zoeken, en dan gelijk door!</h3>
+        <h1 style="margin-top: 2em; margin-bottom:4em;">Success!</h1>
       </div>
     `,
     choices: [`Zoek de zebra's!`],
@@ -1355,7 +1365,7 @@ document.addEventListener("keydown", save_incomplete_data)
 
   let info_speed_up_trial = {
     type: jsPsychHtmlButtonResponse,
-    stimulus: `<h3>In deze oefenrondes had je veel tijd om te reageren.<br>Maar vanaf nu moet je sneller zijn!</h3><h3>Als je niet snel genoeg bent, krijg je een melding!</h3>`,
+    stimulus: `<h3 style="margin-top:5em;">In deze oefenrondes had je veel tijd om te reageren.<br>Maar vanaf nu moet je sneller zijn!</h3><h3 style="margin-top: 3em; margin-bottom: 8em;">Als je niet snel genoeg bent, krijg je een melding!</h3>`,
     choices: ['Zoek verder!'],
     save_trial_parameters: {
       stimulus: false,
@@ -1366,7 +1376,7 @@ document.addEventListener("keydown", save_incomplete_data)
 
   let info_too_slow = {
     type: jsPsychHtmlButtonResponse,
-    stimulus: `<h3>Oei! Je was net niet snel genoeg!</h3><h3>Probeer nog sneller op een knop te drukken!</h3>`,
+    stimulus: `<h1 style="margin-top:5em;">Oei! Je was net niet snel genoeg!</h1><h3 style="margin-top: 4em; margin-bottom: 8em;">Probeer nog sneller op een knop te drukken!</h3>`,
     choices: ['Zoek verder!'],
     save_trial_parameters: {
       stimulus: false,
@@ -1430,7 +1440,7 @@ document.addEventListener("keydown", save_incomplete_data)
       {
         timeline: [info_speed_up_trial],
         conditional_function: function() {
-          return running_trial_number == 2;
+          return running_trial_number == n_practice_trials;
         }
       },
 
@@ -1439,7 +1449,7 @@ document.addEventListener("keydown", save_incomplete_data)
         conditional_function: function() {
           let last_main_trial = jsPsych.data.get().filter({phase: "main_trial"}).last().values()[0]
 
-          return running_trial_number > 2 && (last_main_trial.response_label == 'no_response');
+          return running_trial_number > n_practice_trials && (last_main_trial.response_label == 'no_response');
         }
       },
 
@@ -1551,10 +1561,13 @@ v 0.3.1:  (21-04-2026 11:45)
 v 0.3.2:  (21-04-2026 15:15)
   1. disable right click
 
-v 0.4.0:  (21-04-2026 15:15)
+v 0.4.0:  (22-04-2026 13:15)
   1. added clearer instructions for gabor / arrow key coupling
   2. added help in practice rounds
 
+v 0.5.0:  (22-04-2026 14:15)
+  1. lowered buttons to avoid cursor on sandstorm
+  2. included 3 practice trials one of each type: left right absent
 
 */
 
