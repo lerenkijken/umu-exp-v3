@@ -214,6 +214,8 @@ document.addEventListener("keydown", save_incomplete_data)
   const break_every_n_trials = 10
   const n_practice_trials = 3
 
+  let delta_times;
+
   jsPsych.data.addProperties({
     participantID: subject_id,
     filename: filename,
@@ -226,7 +228,7 @@ document.addEventListener("keydown", save_incomplete_data)
   });
 
   // add url variables
-  let exp_version = 'version - 0.5.0- (22-04-2026 14:15)'
+  let exp_version = 'version - 0.5.1- (28-04-2026 10:15)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -809,8 +811,7 @@ document.addEventListener("keydown", save_incomplete_data)
     on_finish: function(data) {
       const response = data.response;
       data.noticed_real_stimulus_last_trial = response.noticed_real_stimulus_last_trial || "";
-      data.correct_detection_last_trial =
-        response.noticed_real_stimulus_last_trial === "yes" ? 1 : 0;
+      data.correct_detection_last_trial = 'no_useful_data';
     }
   };
 
@@ -884,7 +885,6 @@ document.addEventListener("keydown", save_incomplete_data)
   function make_dynamic_trial(imagery_condition, noise_duration = null) {
     let interval_ID;
     let timestamp;
-    let delta_times = [];
     let gabor_fabric_img;
 
     let img_sand_filter = new fabric.Rect({
@@ -923,7 +923,7 @@ document.addEventListener("keydown", save_incomplete_data)
         }
         
 
-        // boost opacity every 9 trials
+        // boost opacity every 13 trials
         let n_left_trials = jsPsych.data.get().filter({phase: "main_trial", external_condition :'left'}).count()
         let n_right_trials = jsPsych.data.get().filter({phase: "main_trial", external_condition :'right'}).count()
         let n_present_trials = n_left_trials + n_right_trials + 1
@@ -975,6 +975,8 @@ document.addEventListener("keydown", save_incomplete_data)
 
 
         let nth_frame = 0;
+        delta_times = [];
+
 
         interval_ID = setInterval(() => {
           canvas.remove(...canvas.getObjects());
@@ -1037,7 +1039,7 @@ document.addEventListener("keydown", save_incomplete_data)
         data.correct = data.response_label === data.correct_response ? 1 : 0;
         data.elapsed_main_task_time_ms = Math.round(performance.now() - main_task_start_time);
 
-        running_score += (running_trial_number>2 ?  get_score(data.correct, data.rt) : 0)
+        running_score += (running_trial_number > n_practice_trials ?  get_score(data.correct, data.rt) : 0) // set 
         console.log(data)
       }
     };
@@ -1520,7 +1522,7 @@ document.addEventListener("keydown", save_incomplete_data)
 
   function get_score(accuracy, rt, allowed_time=dynamic_noise_duration) {
     
-    return Math.round(accuracy * (allowed_time - rt) * 0.1)
+    return  Math.max( 0,  Math.round(accuracy * (allowed_time - rt) * 0.1) )
   }
 
 
@@ -1568,6 +1570,12 @@ v 0.4.0:  (22-04-2026 13:15)
 v 0.5.0:  (22-04-2026 14:15)
   1. lowered buttons to avoid cursor on sandstorm
   2. included 3 practice trials one of each type: left right absent
+
+v 0.5.1:  (28-04-2026 10:15)
+  1. delta_times logs now per trial.
+  2. set in awareness_check trial: data.correct_detection_last_trial = 'no_useful_data';
+  3. ensure score stays above 0.
+
 
 */
 
