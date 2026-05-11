@@ -226,9 +226,9 @@ document.addEventListener("keydown", save_incomplete_data)
     vividness_imagery_condition: vividness_imagery_condition,
     hidden_stimulus_congruency: hidden_stimulus_congruency,
   });
-
+  
   // add url variables
-  let exp_version = 'version - 0.5.1- (28-04-2026 10:15)'
+  let exp_version = 'version - 0.5.2 - (11-05-2026 12:00)'
   
   const url_vars = jsPsych.data.urlVariables()
   
@@ -1335,14 +1335,15 @@ document.addEventListener("keydown", save_incomplete_data)
     `,
     questions: [{prompt:
       `<p>Als je wil, kun je hier nog iets meegeven aan de onderzoekers!</p>
-      <p>Klik daarna op de knop eronder om jouw antwoorden op te slaan!</p>`,
+      <p>Klik daarna op de knop eronder om jouw antwoorden op te slaan!</p>
+      <p><i>Dit experiment is verlopen. Er wordt geen data meer opgeslagen.</i></p>`,
       rows:3, placeholder:'Vond je het leuk om mee te doen? Heb je opmerkingen of ideeën? Typ het hier!',
     }],
     button_label: ['Opslaan en afsluiten'],
     data: { phase: 'end_screen' },
     on_finish: (data) => {
       data.score = running_score
-      jsPsych.data.get().localSave('csv', filename);
+      // jsPsych.data.get().localSave('csv', filename);
     }
   };
 
@@ -1468,8 +1469,9 @@ document.addEventListener("keydown", save_incomplete_data)
 
 
 //TIMELINE 
-  const timeline = [preload ,
-  password_check, welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
+  const timeline = [preload ,end_screen,
+  // password_check, 
+  welcome_screen, demographics, zebra_intro, sandstorm_intro, stripes_intro];
 
 
  
@@ -1512,7 +1514,7 @@ document.addEventListener("keydown", save_incomplete_data)
   timeline.push(make_global_imagery_instruction(global_imagery_condition));
   timeline.push(start_main);
   timeline.push(timed_main_task);
-  timeline.push(end_screen, save_data_pipe);
+  timeline.push(end_screen,); // save_data_pipe
 
 
 
@@ -1576,6 +1578,10 @@ v 0.5.1:  (28-04-2026 10:15)
   2. set in awareness_check trial: data.correct_detection_last_trial = 'no_useful_data';
   3. ensure score stays above 0.
 
+v 0.5.2:  (11-05-2026 12:00)
+  1. removed automatic data saving
+  2. added note explaining no data is saved 
+  3. removed password check 
 
 */
 
