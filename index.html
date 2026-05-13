@@ -1343,6 +1343,7 @@ document.addEventListener("keydown", save_incomplete_data)
     data: { phase: 'end_screen' },
     on_finish: (data) => {
       data.score = running_score
+      window.location.reload()
       // jsPsych.data.get().localSave('csv', filename);
     }
   };
@@ -1582,6 +1583,7 @@ v 0.5.2:  (11-05-2026 12:00)
   1. removed automatic data saving
   2. added note explaining no data is saved 
   3. removed password check 
+  4. reload page at exp end
 
 */
 
